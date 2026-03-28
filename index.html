@@ -243,7 +243,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-hei
 
 <script>
 const SENHA = 'dashoperacional123';
-const API_URL = 'COLE_SUA_URL_AQUI';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzVMxA5cToQgB_IzYZKV9n8TJcesPzyHxYSK7_oSMldiXLmAZpUsYqqDtNl9sK6KUD0/exec';
 let dadosGlobal = null;
 
 /* ── TEMA ── */
@@ -281,7 +281,7 @@ carregarDadosAPI();
 
 /* ── API ── */
 function carregarDadosAPI(){
-if(API_URL==='COLE_SUA_URL_AQUI'){
+if(API_URL==='https://script.google.com/macros/s/AKfycbzVMxA5cToQgB_IzYZKV9n8TJcesPzyHxYSK7_oSMldiXLmAZpUsYqqDtNl9sK6KUD0/exec'){
 document.getElementById('loadingOverlay').classList.add('hidden');
 document.getElementById('dashboardWrap').style.display='block';
 dadosGlobal=gerarDadosDemo();
