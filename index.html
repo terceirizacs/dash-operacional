@@ -685,7 +685,7 @@ function renderEngajamento(){
     html+='<div class="ranking-item" style="flex-wrap:wrap"><div class="ranking-info" style="min-width:140px">'+
       '<div class="ranking-name">'+nome+'</div>'+
       '<div class="ranking-detail">Disparos validos (all-time): '+fN(c.totais.enviados||0)+' &middot; Responderam: '+fN(comR)+' / '+fN(totalL)+'</div>'+
-      '</div><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:12px"><div class="progress-bar" style="flex:1;height:14px;border-radius:8px;background:var(--track-bg);overflow:hidden"><div style="height:100%;width:'+Math.max(parseFloat(taxa),2)+'%;background:var(--'+colorE+');border-radius:8px;transition:width .6s ease"></div></div><div style="font-size:18px;font-weight:800;font-family:JetBrains Mono;min-width:60px;text-align:right" class="color-'+colorE+'">'+taxa+'%</div></div><div style="font-size:11px;color:var(--t3);margin-top:4px">Taxa de engajamento = alunos que responderam / total de linhas</div></div></div>';
+      '</div><div style="flex:1;min-width:200px;display:flex;align-items:center;gap:12px"><div class="bar-track" style="flex:1"><div class="bar-fill" style="width:'+Math.max(parseFloat(taxa),3)+'%;background:var(--'+colorE+')">'+taxa+'%</div></div><div style="font-size:18px;font-weight:800;font-family:JetBrains Mono;min-width:60px;text-align:right" class="color-'+colorE+'">'+taxa+'%</div></div></div>';
   });
   html+='</div>';
   document.getElementById('engajamentoSection').innerHTML=html;
