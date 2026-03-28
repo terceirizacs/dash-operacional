@@ -55,20 +55,20 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 .filter-tag{padding:5px 12px;border-radius:9px;font-size:12px;font-weight:500;background:rgba(139,124,247,.1);border:1px solid rgba(139,124,247,.2);color:var(--accent);display:flex;align-items:center;gap:6px}
 .filter-tag.neutral{background:var(--track-bg);border-color:var(--border);color:var(--t3)}
 
-/* Multi-select */
-.ms-wrap{position:relative;min-width:180px}
-.ms-trigger{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between}
-.ms-trigger::after{content:'▾';margin-left:8px;font-size:10px;color:var(--t3)}
-.ms-trigger.open{border-color:var(--accent)}
-.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:200;display:none;max-height:240px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.3)}
+/* Multi-select (mesmo do Bruno) */
+.ms-wrap{position:relative}
+.ms-trigger{padding:9px 12px;border-radius:9px;border:1px solid var(--border);background:var(--track-bg);color:var(--t2);font-size:13px;cursor:pointer;user-select:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-trigger:hover,.ms-trigger.open{border-color:var(--accent);color:var(--t1)}
+.ms-count{background:var(--accent);color:#fff;font-size:11px;padding:1px 7px;border-radius:7px;margin-left:4px;font-weight:700}
+.ms-dropdown{position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid var(--border);border-radius:12px;max-height:240px;overflow-y:auto;z-index:50;display:none;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+[data-theme="light"] .ms-dropdown{background:#fff}
 .ms-dropdown.show{display:block}
-.ms-option{padding:8px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t2);transition:background .15s}
-.ms-option:hover{background:rgba(139,124,247,.08)}
-.ms-option .ms-check{width:16px;height:16px;border-radius:4px;border:2px solid var(--border);transition:all .15s;flex-shrink:0}
+.ms-selall{padding:9px 12px;font-size:13px;color:var(--accent);cursor:pointer;border-bottom:1px solid var(--border);font-weight:600}
+.ms-option{padding:7px 12px;font-size:13px;color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:7px}
+.ms-option:hover{background:rgba(139,124,247,.08);color:var(--t1)}
+.ms-option.selected{background:rgba(139,124,247,.12);color:var(--accent)}
+.ms-check{width:15px;height:15px;border-radius:4px;border:2px solid var(--border);flex-shrink:0}
 .ms-option.selected .ms-check{background:var(--accent);border-color:var(--accent)}
-.ms-option.selected{color:var(--t1);font-weight:600}
-.ms-selall{padding:8px 12px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;border-bottom:1px solid var(--border);margin-bottom:4px}
-.ms-count{background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px}
 
 /* KPI Grid */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
@@ -350,23 +350,21 @@ function initFilters(){
   updateTags();
 }
 function initMultiSelect(){
-  var wrap=document.getElementById('fCliente');
-  var html='<div class="ms-trigger" onclick="toggleMS(this)">Todos</div>';
-  html+='<div class="ms-dropdown"><div class="ms-selall" onclick="toggleAllMS()">☑ Marcar todos</div>';
-  CLIENTES.forEach(c=>{html+='<div class="ms-option selected" data-val="'+c+'" onclick="toggleOptMS(this)"><div class="ms-check"></div>'+c+'</div>';});
-  html+='</div>';
-  wrap.innerHTML=html;
+  buildMS('fCliente',CLIENTES);
 }
-function toggleMS(t){var dd=t.nextElementSibling;var open=dd.classList.contains('show');document.querySelectorAll('.ms-dropdown').forEach(d=>d.classList.remove('show'));document.querySelectorAll('.ms-trigger').forEach(t=>t.classList.remove('open'));if(!open){dd.classList.add('show');t.classList.add('open');}}
-function toggleOptMS(o){o.classList.toggle('selected');updateMSTrigger();}
-function toggleAllMS(){var opts=document.querySelectorAll('#fCliente .ms-option');var allSel=document.querySelectorAll('#fCliente .ms-option.selected').length===opts.length;opts.forEach(o=>{if(allSel)o.classList.remove('selected');else o.classList.add('selected');});updateMSTrigger();}
-function updateMSTrigger(){var sel=document.querySelectorAll('#fCliente .ms-option.selected');var trig=document.querySelector('#fCliente .ms-trigger');if(sel.length===CLIENTES.length||sel.length===0){trig.innerHTML='Todos';filtroClientes=null;}else{var names=Array.from(sel).map(o=>o.dataset.val);trig.innerHTML=names.length<=2?names.join(', '):names[0]+' <span class="ms-count">+'+( names.length-1)+'</span>';filtroClientes=names;}}
-document.addEventListener('click',e=>{if(!e.target.closest('.ms-wrap')){document.querySelectorAll('.ms-dropdown').forEach(d=>d.classList.remove('show'));document.querySelectorAll('.ms-trigger').forEach(t=>t.classList.remove('open'));}});
+function buildMS(id,vals){var w=document.getElementById(id);var h='<div class="ms-trigger" onclick="toggleMS(this)">Todos</div><div class="ms-dropdown"><div class="ms-selall" onclick="toggleAll(this)">☑ Marcar todos</div>';vals.forEach(function(v){h+='<div class="ms-option" onclick="toggleOpt(this)" data-val="'+v+'"><div class="ms-check"></div>'+v+'</div>';});h+='</div>';w.innerHTML=h;}
+function toggleMS(t){var dd=t.nextElementSibling,o=dd.classList.contains('show');document.querySelectorAll('.ms-dropdown.show').forEach(function(d){d.classList.remove('show');d.previousElementSibling.classList.remove('open');});if(!o){dd.classList.add('show');t.classList.add('open');}}
+function toggleOpt(o){o.classList.toggle('selected');updTrig(o.closest('.ms-wrap'));}
+function toggleAll(e){var w=e.closest('.ms-wrap'),os=w.querySelectorAll('.ms-option'),all=w.querySelectorAll('.ms-option.selected').length===os.length;os.forEach(function(o){if(all)o.classList.remove('selected');else o.classList.add('selected');});updTrig(w);}
+function updTrig(w){var t=w.querySelector('.ms-trigger'),s=w.querySelectorAll('.ms-option.selected');if(!s.length){t.innerHTML='Todos';filtroClientes=null;}else{var n=Array.from(s).map(function(o){return o.dataset.val;});t.innerHTML=(n.length<=2?n.join(', '):n[0]+' <span class="ms-count">+'+n.length+'</span>');filtroClientes=n.length===CLIENTES.length?null:n;}}
+function getMS(id){var e=document.getElementById(id);if(!e)return[];return Array.from(e.querySelectorAll('.ms-option.selected')).map(function(o){return o.dataset.val;});}
+document.addEventListener('click',function(e){if(!e.target.closest('.ms-wrap')){document.querySelectorAll('.ms-dropdown.show').forEach(function(d){d.classList.remove('show');d.previousElementSibling.classList.remove('open');});}});
 function applyFilters(){
   filtroDE=document.getElementById('fDe').value||null;
   filtroATE=document.getElementById('fAte').value||null;
   if(!filtroDE||!filtroATE){var w=getWeekRange();filtroDE=filtroDE||w.de;filtroATE=filtroATE||w.ate;}
-  updateMSTrigger();
+  var sel=getMS('fCliente');
+  filtroClientes=sel.length>0&&sel.length<CLIENTES.length?sel:null;
   updateTags();renderAll();
 }
 function resetFilters(){
@@ -375,8 +373,9 @@ function resetFilters(){
   document.getElementById('fAte').value=w.ate;
   filtroDE=w.de;filtroATE=w.ate;
   filtroClientes=null;
-  document.querySelectorAll('#fCliente .ms-option').forEach(o=>o.classList.add('selected'));
-  updateMSTrigger();
+  document.querySelectorAll('#fCliente .ms-option').forEach(function(o){o.classList.remove('selected');});
+  var trig=document.querySelector('#fCliente .ms-trigger');
+  if(trig)trig.innerHTML='Todos';
   updateTags();renderAll();
 }
 function updateTags(){
