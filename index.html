@@ -262,8 +262,22 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 <div class="ranking-list" id="rankingList"></div>
 <div class="section-title"><span class="emoji">&#128202;</span> Taxa de Resposta por Cliente</div>
 <div class="bar-chart" id="barChart"></div>
-<div class="section-title"><span class="emoji">&#128200;</span> Consolidado</div>
-<div class="kpi-grid" id="kpiConsolidado"></div>
+
+<div class="section-title"><span class="emoji">&#128200;</span> Tendencia — Semana Atual vs Anterior <span class="tt">?<span class="tt-text">Compara os dados da semana atual (segunda ate hoje) com a semana anterior completa (segunda a domingo).</span></span></div>
+<div class="detail-grid" id="tendenciaSemanal"></div>
+<div class="kpi-grid" id="tendenciaVariacao"></div>
+
+<div class="section-title"><span class="emoji">&#128260;</span> Follow-up — Recontatos <span class="tt">?<span class="tt-text">Linhas com 2+ checks verdes sao recontatos. Linhas com exatamente 1 check sao disparos unicos.</span></span></div>
+<div id="followupSection"></div>
+
+<div class="section-title"><span class="emoji">&#128202;</span> Cobertura da Operacao <span class="tt">?<span class="tt-text">Percentual de alunos que responderam vs total de linhas na base.</span></span></div>
+<div id="coberturaSection"></div>
+
+<div class="section-title"><span class="emoji">&#127919;</span> Engajamento Real <span class="tt">?<span class="tt-text">Taxa de conversao: alunos que responderam em relacao ao total de linhas processadas.</span></span></div>
+<div id="engajamentoSection"></div>
+
+<div class="section-title"><span class="emoji">&#9201;</span> SLA — Tempo de Resposta <span class="tt">?<span class="tt-text">Calculado comparando a data do disparo vs data da resposta do aluno.</span></span></div>
+<div id="slaSection"></div>
 </div>
 
 <div class="footer"><strong>Terceiriza CS</strong> · Dashboard Operacional</div>
@@ -589,17 +603,128 @@ function renderPerformanceTab(){
   });
   document.getElementById('barChart').innerHTML=bHtml;
 
-  // Consolidado
-  var aggR=getAllClientsRange(range.de,range.ate);
-  var totalMeta=0;getClientesFiltrados().forEach(n=>{var c=RAW.clientes[n];if(c)totalMeta+=c.meta;});
-  var metaGlobalPct=totalMeta?((aggR.enviados/totalMeta)*100):0;
-  var colorG=metaGlobalPct>=80?'green':metaGlobalPct>=50?'yellow':'red';
+  // --- Secao 1: Tendencia Semanal ---
+  renderTendenciaSemanal();
 
-  document.getElementById('kpiConsolidado').innerHTML=
-    kpiCard('Disparos Totais',fN(aggR.enviados),'')+
-    kpiCard('Respostas Totais',fN(aggR.respostas),'')+
-    kpiCard('Taxa Global',pct(aggR.respostas,aggR.enviados)+'%','')+
-    kpiCard('Meta Global',metaGlobalPct.toFixed(1)+'%','<span class="color-'+colorG+'">'+fN(aggR.enviados)+' / '+fN(totalMeta)+'</span>');
+  // --- Secao 2: Follow-up / Recontato ---
+  renderFollowup();
+
+  // --- Secao 3: Cobertura da Operacao ---
+  renderCobertura();
+
+  // --- Secao 4: Engajamento Real ---
+  renderEngajamento();
+
+  // --- Secao 5: SLA ---
+  renderSLA();
+}
+
+/* ── Secao 1: Tendencia Semanal ── */
+function renderTendenciaSemanal(){
+  var today=new Date();today.setHours(0,0,0,0);
+  var monAtual=getMonday(today);
+  var domAnterior=new Date(monAtual);domAnterior.setDate(domAnterior.getDate()-1);
+  var monAnterior=getMonday(domAnterior);
+
+  var deAtual=fmtDate(monAtual),ateAtual=fmtDate(today);
+  var deAnterior=fmtDate(monAnterior),ateAnterior=fmtDate(domAnterior);
+
+  var aggAtual=getAllClientsRange(deAtual,ateAtual);
+  var aggAnterior=getAllClientsRange(deAnterior,ateAnterior);
+
+  var txAtual=aggAtual.enviados>0?(aggAtual.respostas/aggAtual.enviados*100).toFixed(1):'0.0';
+  var txAnterior=aggAnterior.enviados>0?(aggAnterior.respostas/aggAnterior.enviados*100).toFixed(1):'0.0';
+
+  document.getElementById('tendenciaSemanal').innerHTML=
+    '<div class="detail-block"><div class="detail-block-title">Semana Atual ('+fmtBR(deAtual)+' a '+fmtBR(ateAtual)+')</div><div class="kpi-grid">'+
+      kpiCard('Disparos',fN(aggAtual.enviados),'')+kpiCard('Respostas',fN(aggAtual.respostas),'')+kpiCard('Taxa',txAtual+'%','')+
+    '</div></div>'+
+    '<div class="detail-block"><div class="detail-block-title">Semana Anterior ('+fmtBR(deAnterior)+' a '+fmtBR(ateAnterior)+')</div><div class="kpi-grid">'+
+      kpiCard('Disparos',fN(aggAnterior.enviados),'')+kpiCard('Respostas',fN(aggAnterior.respostas),'')+kpiCard('Taxa',txAnterior+'%','')+
+    '</div></div>';
+
+  // Variacao
+  function varPct(atual,anterior){if(!anterior)return atual>0?'+100%':'0%';var v=((atual-anterior)/anterior*100).toFixed(1);return(v>0?'+':'')+v+'%';}
+  function varColor(atual,anterior){return atual>=anterior?'green':'red';}
+  function varSeta(atual,anterior){return atual>=anterior?'&#9650;':'&#9660;';}
+
+  var vDisp=varPct(aggAtual.enviados,aggAnterior.enviados);
+  var vResp=varPct(aggAtual.respostas,aggAnterior.respostas);
+  var vTaxa=varPct(parseFloat(txAtual),parseFloat(txAnterior));
+
+  document.getElementById('tendenciaVariacao').innerHTML=
+    '<div class="kpi-card"><div class="kpi-label">Variacao Disparos</div><div class="kpi-value color-'+varColor(aggAtual.enviados,aggAnterior.enviados)+'"><span>'+varSeta(aggAtual.enviados,aggAnterior.enviados)+'</span> '+vDisp+'</div><div class="kpi-sub">'+fN(aggAtual.enviados)+' vs '+fN(aggAnterior.enviados)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Variacao Respostas</div><div class="kpi-value color-'+varColor(aggAtual.respostas,aggAnterior.respostas)+'"><span>'+varSeta(aggAtual.respostas,aggAnterior.respostas)+'</span> '+vResp+'</div><div class="kpi-sub">'+fN(aggAtual.respostas)+' vs '+fN(aggAnterior.respostas)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Variacao Taxa</div><div class="kpi-value color-'+varColor(parseFloat(txAtual),parseFloat(txAnterior))+'"><span>'+varSeta(parseFloat(txAtual),parseFloat(txAnterior))+'</span> '+vTaxa+'</div><div class="kpi-sub">'+txAtual+'% vs '+txAnterior+'%</div></div>';
+}
+
+/* ── Secao 2: Follow-up / Recontato ── */
+function renderFollowup(){
+  var html='<div class="bar-chart">';
+  getClientesFiltrados().forEach(nome=>{
+    var c=RAW.clientes[nome];if(!c||!c.totais)return;
+    var recon=c.totais.recontatos||0;
+    var unico=c.totais.disparoUnicos||0;
+    var total=recon+unico;
+    var pctRecon=total>0?((recon/total)*100).toFixed(1):'0.0';
+    var pctUnico=total>0?((unico/total)*100).toFixed(1):'0.0';
+    html+='<div class="ranking-item" style="flex-wrap:wrap"><div class="ranking-info" style="min-width:140px">'+
+      '<div class="ranking-name">'+nome+'</div>'+
+      '<div class="ranking-detail">Total: '+fN(total)+' alunos &middot; Unico: '+fN(unico)+' ('+pctUnico+'%) &middot; Recontato: '+fN(recon)+' ('+pctRecon+'%)</div>'+
+      '</div><div style="flex:1;min-width:200px"><div class="bar-track" style="display:flex;height:28px"><div style="width:'+pctUnico+'%;background:var(--accent);height:100%;border-radius:8px 0 0 8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;min-width:'+(unico>0?'30px':'0')+'">'+( unico>0?pctUnico+'%':'')+'</div><div style="width:'+pctRecon+'%;background:var(--gold);height:100%;border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;min-width:'+(recon>0?'30px':'0')+'">'+( recon>0?pctRecon+'%':'')+'</div></div><div style="display:flex;gap:16px;margin-top:6px;font-size:11px;color:var(--t3)"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent);display:inline-block"></span> Unico</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--gold);display:inline-block"></span> Recontato</span></div></div></div>';
+  });
+  html+='</div>';
+  document.getElementById('followupSection').innerHTML=html;
+}
+
+/* ── Secao 3: Cobertura da Operacao ── */
+function renderCobertura(){
+  var html='<div class="bar-chart">';
+  getClientesFiltrados().forEach(nome=>{
+    var c=RAW.clientes[nome];if(!c||!c.totais)return;
+    var totalL=c.totais.totalLinhas||0;
+    var comR=c.totais.comResposta||0;
+    var semR=c.totais.semResposta||0;
+    var pctCob=totalL>0?((comR/totalL)*100).toFixed(1):'0.0';
+    var pctSem=totalL>0?((semR/totalL)*100).toFixed(1):'0.0';
+    var colorCob=parseFloat(pctCob)>=50?'green':parseFloat(pctCob)>=25?'yellow':'red';
+    html+='<div class="ranking-item" style="flex-wrap:wrap"><div class="ranking-info" style="min-width:140px">'+
+      '<div class="ranking-name">'+nome+'</div>'+
+      '<div class="ranking-detail">Base: '+fN(totalL)+' &middot; Responderam: '+fN(comR)+' &middot; Sem resposta: '+fN(semR)+'</div>'+
+      '</div><div style="flex:1;min-width:200px;display:flex;align-items:center;gap:12px"><div class="bar-track" style="flex:1"><div class="bar-fill" style="width:'+Math.max(parseFloat(pctCob),3)+'%;background:var(--'+colorCob+')">'+pctCob+'%</div></div><div style="font-size:18px;font-weight:800;font-family:JetBrains Mono;min-width:60px;text-align:right" class="color-'+colorCob+'">'+pctCob+'%</div></div></div>';
+  });
+  html+='</div>';
+  document.getElementById('coberturaSection').innerHTML=html;
+}
+
+/* ── Secao 4: Engajamento Real ── */
+function renderEngajamento(){
+  var html='<div class="bar-chart">';
+  getClientesFiltrados().forEach(nome=>{
+    var c=RAW.clientes[nome];if(!c||!c.totais)return;
+    var totalL=c.totais.totalLinhas||0;
+    var comR=c.totais.comResposta||0;
+    var taxa=totalL>0?((comR/totalL)*100).toFixed(1):'0.0';
+    var colorE=parseFloat(taxa)>=40?'green':parseFloat(taxa)>=20?'yellow':'red';
+    html+='<div class="ranking-item" style="flex-wrap:wrap"><div class="ranking-info" style="min-width:140px">'+
+      '<div class="ranking-name">'+nome+'</div>'+
+      '<div class="ranking-detail">Disparos validos (all-time): '+fN(c.totais.enviados||0)+' &middot; Responderam: '+fN(comR)+' / '+fN(totalL)+'</div>'+
+      '</div><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:12px"><div class="progress-bar" style="flex:1;height:14px;border-radius:8px;background:var(--track-bg);overflow:hidden"><div style="height:100%;width:'+Math.max(parseFloat(taxa),2)+'%;background:var(--'+colorE+');border-radius:8px;transition:width .6s ease"></div></div><div style="font-size:18px;font-weight:800;font-family:JetBrains Mono;min-width:60px;text-align:right" class="color-'+colorE+'">'+taxa+'%</div></div><div style="font-size:11px;color:var(--t3);margin-top:4px">Taxa de engajamento = alunos que responderam / total de linhas</div></div></div>';
+  });
+  html+='</div>';
+  document.getElementById('engajamentoSection').innerHTML=html;
+}
+
+/* ── Secao 5: SLA ── */
+function renderSLA(){
+  document.getElementById('slaSection').innerHTML=
+    '<div class="ranking-item" style="flex-direction:column;align-items:flex-start;gap:12px;padding:24px">'+
+    '<div style="font-size:14px;color:var(--t2);line-height:1.6">'+
+    '<strong style="color:var(--gold)">&#9888; Nota:</strong> O calculo preciso de SLA (tempo medio entre disparo e resposta do aluno) requer dados mais granulares — especificamente a hora exata do disparo e a hora exata da resposta.<br><br>'+
+    'Atualmente, os dados disponíveis registram apenas a <strong>data</strong> (sem horario exato), o que limita a precisao do calculo a intervalos de 1 dia.<br><br>'+
+    '<strong>Status atual:</strong> Na tabela de Breakdown da Semana (aba Detalhamento), exibimos uma estimativa simplificada de &quot;&lt; 24h&quot; quando ha respostas no mesmo dia dos disparos.<br><br>'+
+    '<strong>Para ativar o SLA completo:</strong> Adicionar colunas de timestamp (data + hora) para disparo e resposta na planilha de dados.'+
+    '</div></div>';
 }
 </script>
 </body>

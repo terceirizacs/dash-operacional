@@ -48,7 +48,7 @@ function processarDados(ss, nomeAba) {
   var sheet = ss.getSheetByName(nomeAba);
   var resultado = {
     porDia: {},
-    totais: { enviados: 0, respostas: 0, respostasCS: 0 }
+    totais: { enviados: 0, respostas: 0, respostasCS: 0, recontatos: 0, disparoUnicos: 0, comResposta: 0, semResposta: 0, totalLinhas: 0 }
   };
 
   if (!sheet) return resultado;
@@ -67,11 +67,19 @@ function processarDados(ss, nomeAba) {
 
     if (statusRaw === "" || statusRaw === "undefined") continue;
 
+    // Contabilizar linha processada
+    resultado.totais.totalLinhas++;
+
+    // Contar checks verdes na linha para follow-up/recontato
+    var checksNaLinha = 0;
+
     // Extrair cada check verde com sua data
     var partes = statusRaw.split("+");
     for (var p = 0; p < partes.length; p++) {
       var parte = partes[p].trim();
       if (parte.indexOf("✅") === -1) continue; // Ignora partes com X ou sem check
+
+      checksNaLinha++;
 
       // Extrair data do formato: "✅ DD/MM/YYYY HH:MM"
       var matchData = parte.match(/(\d{2})\/(\d{2})\/(\d{4})/);
@@ -90,8 +98,23 @@ function processarDados(ss, nomeAba) {
       resultado.totais.enviados++;
     }
 
-    // Mensagem Aluno: extrair data (pode ser Date ou string)
+    // Classificar recontato vs disparo unico
+    if (checksNaLinha >= 2) {
+      resultado.totais.recontatos++;
+    } else if (checksNaLinha === 1) {
+      resultado.totais.disparoUnicos++;
+    }
+
+    // Engajamento real: verificar se coluna C (Mensagem Aluno) tem conteudo
     var alunoVal = values[i][2];
+    var alunoStr = String(alunoVal).trim();
+    if (alunoStr !== "" && alunoStr !== "undefined") {
+      resultado.totais.comResposta++;
+    } else {
+      resultado.totais.semResposta++;
+    }
+
+    // Mensagem Aluno: extrair data (pode ser Date ou string)
     var chaveAluno = extrairChaveData(alunoVal);
     if (chaveAluno) {
       if (!resultado.porDia[chaveAluno]) resultado.porDia[chaveAluno] = { enviados: 0, respostas: 0, respostasCS: 0 };
