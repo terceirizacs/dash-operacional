@@ -62,13 +62,47 @@ function processarDados(ss, nomeAba) {
 
   for (var i = 0; i < values.length; i++) {
     var statusRaw = String(values[i][0]).trim();
-    var msgAgente = String(values[i][1]).trim();
-    var msgAluno = String(values[i][2]).trim();
+    var alunoVal = values[i][2];
+    var agenteVal = values[i][1];
+    var alunoStr = String(alunoVal).trim();
+    var agenteStr = String(agenteVal).trim();
 
-    if (statusRaw === "" || statusRaw === "undefined") continue;
+    // Contar engajamento para TODAS as linhas (mesmo sem status)
+    var temAluno = alunoStr !== '' && alunoStr !== 'undefined' && alunoVal !== null;
+    var temAgente = agenteStr !== '' && agenteStr !== 'undefined' && agenteVal !== null;
+
+    // Se tem status OU tem resposta do aluno, conta como linha válida
+    var temStatus = statusRaw !== '' && statusRaw !== 'undefined';
+    if (!temStatus && !temAluno && !temAgente) continue;
 
     // Contabilizar linha processada
     resultado.totais.totalLinhas++;
+
+    // Engajamento: coluna C tem conteúdo?
+    if (temAluno) {
+      resultado.totais.comResposta++;
+    } else {
+      resultado.totais.semResposta++;
+    }
+
+    // Resposta aluno: extrair data
+    var chaveAluno = extrairChaveData(alunoVal);
+    if (chaveAluno) {
+      if (!resultado.porDia[chaveAluno]) resultado.porDia[chaveAluno] = { enviados: 0, respostas: 0, respostasCS: 0 };
+      resultado.porDia[chaveAluno].respostas++;
+      resultado.totais.respostas++;
+    }
+
+    // Resposta agente: extrair data
+    var chaveAgente = extrairChaveData(agenteVal);
+    if (chaveAgente) {
+      if (!resultado.porDia[chaveAgente]) resultado.porDia[chaveAgente] = { enviados: 0, respostas: 0, respostasCS: 0 };
+      resultado.porDia[chaveAgente].respostasCS++;
+      resultado.totais.respostasCS++;
+    }
+
+    // Se não tem status de disparo, pular contagem de ✅
+    if (!temStatus) continue;
 
     // Contar checks verdes na linha para follow-up/recontato
     var checksNaLinha = 0;
@@ -105,31 +139,7 @@ function processarDados(ss, nomeAba) {
       resultado.totais.disparoUnicos++;
     }
 
-    // Engajamento real: verificar se coluna C (Mensagem Aluno) tem conteudo
-    var alunoVal = values[i][2];
-    var alunoStr = String(alunoVal).trim();
-    if (alunoStr !== "" && alunoStr !== "undefined") {
-      resultado.totais.comResposta++;
-    } else {
-      resultado.totais.semResposta++;
-    }
-
-    // Mensagem Aluno: extrair data (pode ser Date ou string)
-    var chaveAluno = extrairChaveData(alunoVal);
-    if (chaveAluno) {
-      if (!resultado.porDia[chaveAluno]) resultado.porDia[chaveAluno] = { enviados: 0, respostas: 0, respostasCS: 0 };
-      resultado.porDia[chaveAluno].respostas++;
-      resultado.totais.respostas++;
-    }
-
-    // Mensagem Agente: extrair data (pode ser Date ou string)
-    var agenteVal = values[i][1];
-    var chaveAgente = extrairChaveData(agenteVal);
-    if (chaveAgente) {
-      if (!resultado.porDia[chaveAgente]) resultado.porDia[chaveAgente] = { enviados: 0, respostas: 0, respostasCS: 0 };
-      resultado.porDia[chaveAgente].respostasCS++;
-      resultado.totais.respostasCS++;
-    }
+    // (engajamento, respostas aluno e agente ja contabilizados no inicio do loop)
   }
 
   return resultado;
