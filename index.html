@@ -270,9 +270,6 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 <div class="section-title"><span class="emoji">&#128260;</span> Follow-up — Recontatos <span class="tt">?<span class="tt-text">Linhas com 2+ checks verdes sao recontatos. Linhas com exatamente 1 check sao disparos unicos.</span></span></div>
 <div id="followupSection"></div>
 
-<div class="section-title"><span class="emoji">&#128202;</span> Cobertura da Operacao <span class="tt">?<span class="tt-text">Percentual de alunos que responderam vs total de linhas na base.</span></span></div>
-<div id="coberturaSection"></div>
-
 <div class="section-title"><span class="emoji">&#127919;</span> Engajamento Real <span class="tt">?<span class="tt-text">Taxa de conversao: alunos que responderam em relacao ao total de linhas processadas.</span></span></div>
 <div id="engajamentoSection"></div>
 
@@ -609,8 +606,7 @@ function renderPerformanceTab(){
   // --- Secao 2: Follow-up / Recontato ---
   renderFollowup();
 
-  // --- Secao 3: Cobertura da Operacao ---
-  renderCobertura();
+  // Cobertura removida (duplicada com Engajamento)
 
   // --- Secao 4: Engajamento Real ---
   renderEngajamento();
@@ -677,27 +673,7 @@ function renderFollowup(){
   document.getElementById('followupSection').innerHTML=html;
 }
 
-/* ── Secao 3: Cobertura da Operacao ── */
-function renderCobertura(){
-  var html='<div class="bar-chart">';
-  getClientesFiltrados().forEach(nome=>{
-    var c=RAW.clientes[nome];if(!c||!c.totais)return;
-    var totalL=c.totais.totalLinhas||0;
-    var comR=c.totais.comResposta||0;
-    var semR=c.totais.semResposta||0;
-    var pctCob=totalL>0?((comR/totalL)*100).toFixed(1):'0.0';
-    var pctSem=totalL>0?((semR/totalL)*100).toFixed(1):'0.0';
-    var colorCob=parseFloat(pctCob)>=50?'green':parseFloat(pctCob)>=25?'yellow':'red';
-    html+='<div class="ranking-item" style="flex-wrap:wrap"><div class="ranking-info" style="min-width:140px">'+
-      '<div class="ranking-name">'+nome+'</div>'+
-      '<div class="ranking-detail">Base: '+fN(totalL)+' &middot; Responderam: '+fN(comR)+' &middot; Sem resposta: '+fN(semR)+'</div>'+
-      '</div><div style="flex:1;min-width:200px;display:flex;align-items:center;gap:12px"><div class="bar-track" style="flex:1"><div class="bar-fill" style="width:'+Math.max(parseFloat(pctCob),3)+'%;background:var(--'+colorCob+')">'+pctCob+'%</div></div><div style="font-size:18px;font-weight:800;font-family:JetBrains Mono;min-width:60px;text-align:right" class="color-'+colorCob+'">'+pctCob+'%</div></div></div>';
-  });
-  html+='</div>';
-  document.getElementById('coberturaSection').innerHTML=html;
-}
-
-/* ── Secao 4: Engajamento Real ── */
+/* ── Secao: Engajamento Real ── */
 function renderEngajamento(){
   var html='<div class="bar-chart">';
   getClientesFiltrados().forEach(nome=>{
