@@ -19,7 +19,8 @@ function doGet(e) {
     resultado.clientes[nome] = {
       meta: cfg.meta,
       porDia: dados.porDia,
-      totais: dados.totais
+      totais: dados.totais,
+      sla: dados.sla
     };
   }
 
