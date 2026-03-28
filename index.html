@@ -223,7 +223,7 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 
 <!-- TAB: VISAO GERAL -->
 <div class="tab-content active" id="tab-geral">
-<div class="section-title"><span class="emoji">&#128202;</span> KPIs da Semana</div>
+<div class="section-title"><span class="emoji">&#128202;</span> KPIs do Periodo <span style="font-size:11px;font-weight:400;color:var(--t3)">(semana atual ou data selecionada no filtro)</span></div>
 <div class="kpi-grid" id="kpiSemana"></div>
 <div class="section-title"><span class="emoji">&#128200;</span> Totais Historicos (All-Time)</div>
 <div class="kpi-grid" id="kpiAllTime"></div>
@@ -414,11 +414,13 @@ function renderGeralTab(){
   var taxa=pct(agg.respostas,agg.enviados);
 
   // KPIs da semana/filtro
+  var isWeek=(function(){var w=getWeekRange();return filtroDE===w.de&&filtroATE===w.ate;})();
+  var periodoLabel=isWeek?'semana atual':'periodo selecionado ('+fmtBR(range.de)+' a '+fmtBR(range.ate)+')';
   document.getElementById('kpiSemana').innerHTML=
-    kpiCard('Total Disparos Validos',fN(agg.enviados),'','Quantidade de mensagens enviadas com sucesso (check verde) no periodo filtrado. Cada check verde no status conta como 1 disparo.')+
-    kpiCard('Total Respostas Alunos',fN(agg.respostas),'','Alunos que responderam no periodo filtrado')+
-    kpiCard('Taxa de Resposta Media',taxa+'%','','Respostas dos alunos / Disparos validos x 100')+
-    kpiCard('Pendentes',fN(pend),'','Alunos que receberam disparo mas ainda nao responderam no periodo');
+    kpiCard('Total Disparos Validos',fN(agg.enviados),'','Mensagens enviadas com sucesso (✅) na '+periodoLabel+'. Cada ✅ conta como 1 disparo.')+
+    kpiCard('Total Respostas Alunos',fN(agg.respostas),'','Alunos que responderam na '+periodoLabel)+
+    kpiCard('Taxa de Resposta Media',taxa+'%','','Respostas dos alunos / Disparos validos × 100. Periodo: '+periodoLabel)+
+    kpiCard('Respostas CS',fN(agg.respostasCS),'','Mensagens respondidas pelo time de CS na '+periodoLabel);
 
   // All-time
   var totals=getAllClientsTotals();
@@ -436,7 +438,6 @@ function renderGeralTab(){
     var metaPct=c.meta?((r.enviados/c.meta)*100):0;
     var colorClass=metaPct>=80?'green':metaPct>=50?'yellow':'red';
     var taxa2=pct(r.respostas,r.enviados);
-    var pendC=Math.max(0,r.enviados-r.respostas);
     html+='<div class="client-card"><div class="client-name">'+nome+'</div>'+
       '<div class="client-meta">Meta: '+fN(c.meta)+' disparos/semana</div>'+
       '<div class="progress-bar"><div class="progress-fill bg-'+colorClass+'" style="width:'+Math.min(100,metaPct)+'%"></div></div>'+
@@ -444,8 +445,8 @@ function renderGeralTab(){
       '<div class="client-stats">'+
         '<div class="client-stat"><div class="client-stat-value">'+fN(r.enviados)+'</div><div class="client-stat-label">Enviados</div></div>'+
         '<div class="client-stat"><div class="client-stat-value">'+taxa2+'%</div><div class="client-stat-label">Taxa Resp.</div></div>'+
-        '<div class="client-stat"><div class="client-stat-value">'+fN(r.respostas)+'</div><div class="client-stat-label">Respostas</div></div>'+
-        '<div class="client-stat"><div class="client-stat-value">'+fN(pendC)+'</div><div class="client-stat-label">Pendentes</div></div>'+
+        '<div class="client-stat"><div class="client-stat-value">'+fN(r.respostas)+'</div><div class="client-stat-label">Resp. Alunos</div></div>'+
+        '<div class="client-stat"><div class="client-stat-value">'+fN(r.respostasCS)+'</div><div class="client-stat-label">Resp. CS</div></div>'+
       '</div></div>';
   });
   document.getElementById('clientCards').innerHTML=html;
@@ -475,28 +476,29 @@ function renderDetalheTab(){
   var pendH=Math.max(0,dH.enviados-dH.respostas);
   var pendY=Math.max(0,dY.enviados-dY.respostas);
 
+  var txH=dH.enviados>0?(dH.respostas/dH.enviados*100).toFixed(1):'0.0';
+  var txY=dY.enviados>0?(dY.respostas/dY.enviados*100).toFixed(1):'0.0';
   document.getElementById('detailHojeOntem').innerHTML=
     '<div class="detail-block"><div class="detail-block-title">Hoje ('+fmtBR(today)+')</div><div class="kpi-grid">'+
-      kpiCard('Disparos',fN(dH.enviados),'')+kpiCard('Resp. Alunos',fN(dH.respostas),'')+
-      kpiCard('Resp. CS',fN(dH.respostasCS),'')+kpiCard('Pendentes',fN(pendH),'')+
+      kpiCard('Disparos',fN(dH.enviados),'')+kpiCard('Resp. Alunos',fN(dH.respostas),'Alunos que responderam hoje')+
+      kpiCard('Resp. CS',fN(dH.respostasCS),'Respostas do time CS hoje')+kpiCard('Taxa Resposta',txH+'%','Disparos: '+fN(dH.enviados)+' · Respostas: '+fN(dH.respostas))+
     '</div></div>'+
     '<div class="detail-block"><div class="detail-block-title">Ontem ('+fmtBR(yesterday)+')</div><div class="kpi-grid">'+
-      kpiCard('Disparos',fN(dY.enviados),'')+kpiCard('Resp. Alunos',fN(dY.respostas),'')+
-      kpiCard('Resp. CS',fN(dY.respostasCS),'')+kpiCard('Pendentes',fN(pendY),'')+
+      kpiCard('Disparos',fN(dY.enviados),'')+kpiCard('Resp. Alunos',fN(dY.respostas),'Alunos que responderam ontem')+
+      kpiCard('Resp. CS',fN(dY.respostasCS),'Respostas do time CS ontem')+kpiCard('Taxa Resposta',txY+'%','Disparos: '+fN(dY.enviados)+' · Respostas: '+fN(dY.respostas))+
     '</div></div>';
 
   // Table: days in range
   var days=daysInRange(range.de,range.ate);
-  var tbl='<table><thead><tr><th>Dia</th><th>Disparos</th><th>Resp. Alunos</th><th>Resp. CS</th><th>Taxa</th><th>Pendentes</th></tr></thead><tbody>';
+  var tbl='<table><thead><tr><th>Dia</th><th>Disparos</th><th>Resp. Alunos</th><th>Resp. CS</th><th>Taxa</th><th>SLA (resposta)</th></tr></thead><tbody>';
   var totE=0,totR=0,totCS=0;
   for(var i=0;i<days.length;i++){
     var dd=getClientDay(selectedClient,days[i]);
     totE+=dd.enviados;totR+=dd.respostas;totCS+=dd.respostasCS;
-    var p=Math.max(0,dd.enviados-dd.respostas);
-    tbl+='<tr><td>'+dayName(days[i])+' '+fmtBR(days[i])+'</td><td>'+fN(dd.enviados)+'</td><td>'+fN(dd.respostas)+'</td><td>'+fN(dd.respostasCS)+'</td><td>'+pct(dd.respostas,dd.enviados)+'%</td><td>'+fN(p)+'</td></tr>';
+    var sla=dd.respostas>0&&dd.enviados>0?'< 24h':'—';
+    tbl+='<tr><td>'+dayName(days[i])+' '+fmtBR(days[i])+'</td><td>'+fN(dd.enviados)+'</td><td>'+fN(dd.respostas)+'</td><td>'+fN(dd.respostasCS)+'</td><td>'+pct(dd.respostas,dd.enviados)+'%</td><td>'+sla+'</td></tr>';
   }
-  var totP=Math.max(0,totE-totR);
-  tbl+='<tr><td>TOTAL</td><td>'+fN(totE)+'</td><td>'+fN(totR)+'</td><td>'+fN(totCS)+'</td><td>'+pct(totR,totE)+'%</td><td>'+fN(totP)+'</td></tr>';
+  tbl+='<tr style="font-weight:700;border-top:2px solid var(--border)"><td>TOTAL</td><td>'+fN(totE)+'</td><td>'+fN(totR)+'</td><td>'+fN(totCS)+'</td><td>'+pct(totR,totE)+'%</td><td>—</td></tr>';
   tbl+='</tbody></table>';
   document.getElementById('detailTable').innerHTML=tbl;
 }

@@ -27,6 +27,23 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+function extrairChaveData(val) {
+  if (!val || val === '' || val === 'undefined') return null;
+  // Se é Date object (Google Sheets)
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    var d = val.getDate().toString().padStart(2, '0');
+    var m = (val.getMonth() + 1).toString().padStart(2, '0');
+    var y = val.getFullYear();
+    return y + '-' + m + '-' + d;
+  }
+  // Se é string, tentar DD/MM/YYYY
+  var s = String(val).trim();
+  if (s === '' || s === 'undefined') return null;
+  var match = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (match) return match[3] + '-' + match[2] + '-' + match[1];
+  return null;
+}
+
 function processarDados(ss, nomeAba) {
   var sheet = ss.getSheetByName(nomeAba);
   var resultado = {
@@ -73,29 +90,21 @@ function processarDados(ss, nomeAba) {
       resultado.totais.enviados++;
     }
 
-    // Mensagem Aluno: extrair data se existir
-    if (msgAluno !== "" && msgAluno !== "undefined") {
-      var matchAluno = msgAluno.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-      if (matchAluno) {
-        var chaveAluno = matchAluno[3] + "-" + matchAluno[2] + "-" + matchAluno[1];
-        if (!resultado.porDia[chaveAluno]) {
-          resultado.porDia[chaveAluno] = { enviados: 0, respostas: 0, respostasCS: 0 };
-        }
-        resultado.porDia[chaveAluno].respostas++;
-      }
+    // Mensagem Aluno: extrair data (pode ser Date ou string)
+    var alunoVal = values[i][2];
+    var chaveAluno = extrairChaveData(alunoVal);
+    if (chaveAluno) {
+      if (!resultado.porDia[chaveAluno]) resultado.porDia[chaveAluno] = { enviados: 0, respostas: 0, respostasCS: 0 };
+      resultado.porDia[chaveAluno].respostas++;
       resultado.totais.respostas++;
     }
 
-    // Mensagem Agente: extrair data se existir
-    if (msgAgente !== "" && msgAgente !== "undefined") {
-      var matchAgente = msgAgente.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-      if (matchAgente) {
-        var chaveAgente = matchAgente[3] + "-" + matchAgente[2] + "-" + matchAgente[1];
-        if (!resultado.porDia[chaveAgente]) {
-          resultado.porDia[chaveAgente] = { enviados: 0, respostas: 0, respostasCS: 0 };
-        }
-        resultado.porDia[chaveAgente].respostasCS++;
-      }
+    // Mensagem Agente: extrair data (pode ser Date ou string)
+    var agenteVal = values[i][1];
+    var chaveAgente = extrairChaveData(agenteVal);
+    if (chaveAgente) {
+      if (!resultado.porDia[chaveAgente]) resultado.porDia[chaveAgente] = { enviados: 0, respostas: 0, respostasCS: 0 };
+      resultado.porDia[chaveAgente].respostasCS++;
       resultado.totais.respostasCS++;
     }
   }
