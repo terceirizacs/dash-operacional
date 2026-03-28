@@ -703,7 +703,7 @@ function renderSLA(){
     var horas=Math.floor(avgMin/60);
     var mins=avgMin%60;
     var label=horas>0?horas+'h '+mins+'min':mins+'min';
-    var colorSLA=avgMin<=60?'green':avgMin<=240?'gold':'red';
+    var colorSLA=avgMin<=360?'green':avgMin<=1440?'gold':'red';
     var maxBar=480; // 8h como referencia
     var w=Math.min(Math.max(Math.round(avgMin/maxBar*100),3),100);
     html+='<div class="ranking-item" style="flex-wrap:wrap"><div class="ranking-info" style="min-width:140px">'+
@@ -717,11 +717,11 @@ function renderSLA(){
   var avgGeral=totalCount>0?Math.round(totalMin/totalCount):0;
   var hG=Math.floor(avgGeral/60),mG=avgGeral%60;
   var labelG=hG>0?hG+'h '+mG+'min':mG+'min';
-  var colorG=avgGeral<=60?'green':avgGeral<=240?'gold':'red';
+  var colorG=avgGeral<=360?'green':avgGeral<=1440?'gold':'red';
   html+='</div>';
   html+='<div style="display:flex;gap:20px;margin-top:16px;flex-wrap:wrap">';
   html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 24px;text-align:center;flex:1"><div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">SLA Medio Geral</div><div style="font-size:28px;font-weight:700;font-family:JetBrains Mono;margin-top:4px" class="color-'+colorG+'">'+labelG+'</div><div style="font-size:11px;color:var(--t3);margin-top:4px">'+fN(totalCount)+' conversas</div></div>';
-  html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 24px;text-align:center;flex:1"><div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">Referencia</div><div style="font-size:12px;color:var(--t2);margin-top:8px;line-height:1.8"><span style="color:var(--green);font-weight:700">Otimo:</span> ate 1h<br><span style="color:var(--gold);font-weight:700">Bom:</span> 1h a 4h<br><span style="color:var(--red);font-weight:700">Critico:</span> acima de 4h</div></div>';
+  html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 24px;text-align:center;flex:1"><div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">Referencia</div><div style="font-size:12px;color:var(--t2);margin-top:8px;line-height:1.8"><span style="color:var(--green);font-weight:700">Otimo:</span> ate 6h<br><span style="color:var(--gold);font-weight:700">Bom:</span> 6h a 24h<br><span style="color:var(--red);font-weight:700">Critico:</span> acima de 24h</div></div>';
   html+='</div>';
   document.getElementById('slaSection').innerHTML=html;
 }
