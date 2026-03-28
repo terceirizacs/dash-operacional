@@ -55,6 +55,21 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 .filter-tag{padding:5px 12px;border-radius:9px;font-size:12px;font-weight:500;background:rgba(139,124,247,.1);border:1px solid rgba(139,124,247,.2);color:var(--accent);display:flex;align-items:center;gap:6px}
 .filter-tag.neutral{background:var(--track-bg);border-color:var(--border);color:var(--t3)}
 
+/* Multi-select */
+.ms-wrap{position:relative;min-width:180px}
+.ms-trigger{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--t1);font-size:13px;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between}
+.ms-trigger::after{content:'▾';margin-left:8px;font-size:10px;color:var(--t3)}
+.ms-trigger.open{border-color:var(--accent)}
+.ms-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:200;display:none;max-height:240px;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,.3)}
+.ms-dropdown.show{display:block}
+.ms-option{padding:8px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t2);transition:background .15s}
+.ms-option:hover{background:rgba(139,124,247,.08)}
+.ms-option .ms-check{width:16px;height:16px;border-radius:4px;border:2px solid var(--border);transition:all .15s;flex-shrink:0}
+.ms-option.selected .ms-check{background:var(--accent);border-color:var(--accent)}
+.ms-option.selected{color:var(--t1);font-weight:600}
+.ms-selall{padding:8px 12px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;border-bottom:1px solid var(--border);margin-bottom:4px}
+.ms-count{background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px}
+
 /* KPI Grid */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
 .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;position:relative;transition:all .3s}
@@ -215,6 +230,7 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 </div>
 </div>
 <div class="filter-grid">
+<div class="filter-group"><label class="filter-label">Cliente</label><div class="ms-wrap" id="fCliente"></div></div>
 <div class="filter-group"><label class="filter-label">De</label><input type="date" class="filter-date" id="fDe"></div>
 <div class="filter-group"><label class="filter-label">Ate</label><input type="date" class="filter-date" id="fAte"></div>
 </div>
@@ -259,7 +275,12 @@ const SENHA='dashoperacional123';
 let RAW=null;
 let filtroDE=null,filtroATE=null;
 let selectedClient=null;
+let filtroClientes=null; // null = todos
 const CLIENTES=['Andrea Vermont','Dra Investidora','Rafa Bueno','Bruno Lucarelli'];
+function getClientesFiltrados(){
+  if(!filtroClientes||filtroClientes.length===0||filtroClientes.length===CLIENTES.length)return CLIENTES;
+  return CLIENTES.filter(c=>filtroClientes.includes(c));
+}
 
 /* ── Helpers ── */
 function fN(n){return Number(n||0).toLocaleString('pt-BR')}
@@ -325,12 +346,27 @@ function initFilters(){
   document.getElementById('fDe').value=w.de;
   document.getElementById('fAte').value=w.ate;
   filtroDE=w.de;filtroATE=w.ate;
+  initMultiSelect();
   updateTags();
 }
+function initMultiSelect(){
+  var wrap=document.getElementById('fCliente');
+  var html='<div class="ms-trigger" onclick="toggleMS(this)">Todos</div>';
+  html+='<div class="ms-dropdown"><div class="ms-selall" onclick="toggleAllMS()">☑ Marcar todos</div>';
+  CLIENTES.forEach(c=>{html+='<div class="ms-option selected" data-val="'+c+'" onclick="toggleOptMS(this)"><div class="ms-check"></div>'+c+'</div>';});
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+function toggleMS(t){var dd=t.nextElementSibling;var open=dd.classList.contains('show');document.querySelectorAll('.ms-dropdown').forEach(d=>d.classList.remove('show'));document.querySelectorAll('.ms-trigger').forEach(t=>t.classList.remove('open'));if(!open){dd.classList.add('show');t.classList.add('open');}}
+function toggleOptMS(o){o.classList.toggle('selected');updateMSTrigger();}
+function toggleAllMS(){var opts=document.querySelectorAll('#fCliente .ms-option');var allSel=document.querySelectorAll('#fCliente .ms-option.selected').length===opts.length;opts.forEach(o=>{if(allSel)o.classList.remove('selected');else o.classList.add('selected');});updateMSTrigger();}
+function updateMSTrigger(){var sel=document.querySelectorAll('#fCliente .ms-option.selected');var trig=document.querySelector('#fCliente .ms-trigger');if(sel.length===CLIENTES.length||sel.length===0){trig.innerHTML='Todos';filtroClientes=null;}else{var names=Array.from(sel).map(o=>o.dataset.val);trig.innerHTML=names.length<=2?names.join(', '):names[0]+' <span class="ms-count">+'+( names.length-1)+'</span>';filtroClientes=names;}}
+document.addEventListener('click',e=>{if(!e.target.closest('.ms-wrap')){document.querySelectorAll('.ms-dropdown').forEach(d=>d.classList.remove('show'));document.querySelectorAll('.ms-trigger').forEach(t=>t.classList.remove('open'));}});
 function applyFilters(){
   filtroDE=document.getElementById('fDe').value||null;
   filtroATE=document.getElementById('fAte').value||null;
   if(!filtroDE||!filtroATE){var w=getWeekRange();filtroDE=filtroDE||w.de;filtroATE=filtroATE||w.ate;}
+  updateMSTrigger();
   updateTags();renderAll();
 }
 function resetFilters(){
@@ -338,17 +374,25 @@ function resetFilters(){
   document.getElementById('fDe').value=w.de;
   document.getElementById('fAte').value=w.ate;
   filtroDE=w.de;filtroATE=w.ate;
+  filtroClientes=null;
+  document.querySelectorAll('#fCliente .ms-option').forEach(o=>o.classList.add('selected'));
+  updateMSTrigger();
   updateTags();renderAll();
 }
 function updateTags(){
   var a=document.getElementById('tagsArea');
+  var tags='';
   if(filtroDE&&filtroATE){
     var w=getWeekRange();
     var isWeek=(filtroDE===w.de&&filtroATE===w.ate);
-    a.innerHTML='<div class="filter-tag">De: '+fmtBR(filtroDE)+'</div><div class="filter-tag">Ate: '+fmtBR(filtroATE)+'</div>'+(isWeek?'<div class="filter-tag neutral">Semana atual</div>':'');
+    tags='<div class="filter-tag">De: '+fmtBR(filtroDE)+'</div><div class="filter-tag">Ate: '+fmtBR(filtroATE)+'</div>'+(isWeek?'<div class="filter-tag neutral">Semana atual</div>':'');
   }else{
-    a.innerHTML='<div class="filter-tag neutral">Semana atual</div>';
+    tags='<div class="filter-tag neutral">Semana atual</div>';
   }
+  if(filtroClientes&&filtroClientes.length>0&&filtroClientes.length<CLIENTES.length){
+    filtroClientes.forEach(c=>{tags+='<div class="filter-tag">'+c+'</div>';});
+  }
+  a.innerHTML=tags;
 }
 
 /* ── Data loading ── */
@@ -388,13 +432,13 @@ function getClientDay(nome,dia){
 
 function getAllClientsRange(de,ate){
   var env=0,resp=0,respCS=0;
-  CLIENTES.forEach(n=>{var r=getClientRange(n,de,ate);env+=r.enviados;resp+=r.respostas;respCS+=r.respostasCS;});
+  getClientesFiltrados().forEach(n=>{var r=getClientRange(n,de,ate);env+=r.enviados;resp+=r.respostas;respCS+=r.respostasCS;});
   return{enviados:env,respostas:resp,respostasCS:respCS};
 }
 
 function getAllClientsTotals(){
   var env=0,resp=0,respCS=0;
-  CLIENTES.forEach(n=>{var c=RAW.clientes[n];if(c&&c.totais){env+=c.totais.enviados||0;resp+=c.totais.respostas||0;respCS+=c.totais.respostasCS||0;}});
+  getClientesFiltrados().forEach(n=>{var c=RAW.clientes[n];if(c&&c.totais){env+=c.totais.enviados||0;resp+=c.totais.respostas||0;respCS+=c.totais.respostasCS||0;}});
   return{enviados:env,respostas:resp,respostasCS:respCS};
 }
 
@@ -432,7 +476,7 @@ function renderGeralTab(){
 
   // Client cards
   var html='';
-  CLIENTES.forEach(nome=>{
+  getClientesFiltrados().forEach(nome=>{
     var c=RAW.clientes[nome];if(!c)return;
     var r=getClientRange(nome,range.de,range.ate);
     var metaPct=c.meta?((r.enviados/c.meta)*100):0;
@@ -460,8 +504,10 @@ function kpiCard(label,value,sub,tooltip){
 /* ── TAB 2: Detalhamento ── */
 function renderDetalheTab(){
   // Client selector
+  var cf=getClientesFiltrados();
+  if(!selectedClient||!cf.includes(selectedClient))selectedClient=cf[0];
   var selHtml='';
-  CLIENTES.forEach(n=>{
+  cf.forEach(n=>{
     selHtml+='<button class="client-sel-btn'+(n===selectedClient?' active':'')+'" onclick="selectClient(this,&quot;'+n+'&quot;)">'+n+'</button>';
   });
   document.getElementById('clientSelector').innerHTML=selHtml;
@@ -515,7 +561,7 @@ function renderPerformanceTab(){
   var range=getFilterRange();
   // Ranking by % meta
   var arr=[];
-  CLIENTES.forEach(nome=>{
+  getClientesFiltrados().forEach(nome=>{
     var c=RAW.clientes[nome];if(!c)return;
     var r=getClientRange(nome,range.de,range.ate);
     var metaPct=c.meta?((r.enviados/c.meta)*100):0;
@@ -546,7 +592,7 @@ function renderPerformanceTab(){
 
   // Consolidado
   var aggR=getAllClientsRange(range.de,range.ate);
-  var totalMeta=0;CLIENTES.forEach(n=>{var c=RAW.clientes[n];if(c)totalMeta+=c.meta;});
+  var totalMeta=0;getClientesFiltrados().forEach(n=>{var c=RAW.clientes[n];if(c)totalMeta+=c.meta;});
   var metaGlobalPct=totalMeta?((aggR.enviados/totalMeta)*100):0;
   var colorG=metaGlobalPct>=80?'green':metaGlobalPct>=50?'yellow':'red';
 
