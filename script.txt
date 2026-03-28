@@ -44,11 +44,24 @@ function extrairChaveData(val) {
   return null;
 }
 
+function extrairTimestamp(val) {
+  if (!val || val === '' || val === 'undefined') return null;
+  if (val instanceof Date && !isNaN(val.getTime())) return val.getTime();
+  var s = String(val).trim();
+  if (s === '' || s === 'undefined') return null;
+  var m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5]).getTime();
+  var m2 = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m2) return new Date(+m2[3], +m2[2]-1, +m2[1]).getTime();
+  return null;
+}
+
 function processarDados(ss, nomeAba) {
   var sheet = ss.getSheetByName(nomeAba);
   var resultado = {
     porDia: {},
-    totais: { enviados: 0, respostas: 0, respostasCS: 0, recontatos: 0, disparoUnicos: 0, comResposta: 0, semResposta: 0, totalLinhas: 0 }
+    totais: { enviados: 0, respostas: 0, respostasCS: 0, recontatos: 0, disparoUnicos: 0, comResposta: 0, semResposta: 0, totalLinhas: 0 },
+    sla: { somaMinutosCS: 0, countCS: 0 }
   };
 
   if (!sheet) return resultado;
@@ -99,6 +112,19 @@ function processarDados(ss, nomeAba) {
       if (!resultado.porDia[chaveAgente]) resultado.porDia[chaveAgente] = { enviados: 0, respostas: 0, respostasCS: 0 };
       resultado.porDia[chaveAgente].respostasCS++;
       resultado.totais.respostasCS++;
+    }
+
+    // SLA CS: tempo entre resposta do aluno e resposta do agente
+    if (temAluno && temAgente) {
+      var tsAluno = extrairTimestamp(alunoVal);
+      var tsAgente = extrairTimestamp(agenteVal);
+      if (tsAluno && tsAgente && tsAgente > tsAluno) {
+        var diffMin = Math.round((tsAgente - tsAluno) / 60000);
+        if (diffMin >= 0 && diffMin < 14400) { // max 10 dias
+          resultado.sla.somaMinutosCS += diffMin;
+          resultado.sla.countCS++;
+        }
+      }
     }
 
     // Se não tem status de disparo, pular contagem de ✅
