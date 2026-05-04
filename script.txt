@@ -5,7 +5,9 @@ function doGet(e) {
     { dadosAba: "Andrea Vermont", kpiAba: "Operação Semanal Andrea", meta: 1000 },
     { dadosAba: "Dra Investidora", kpiAba: "Operação Semanal Dra Investidor", meta: 50 },
     { dadosAba: "Rafa Bueno", kpiAba: "Operação Semanal Rafa Bueno", meta: 250 },
-    { dadosAba: "Bruno Lucarelli", kpiAba: "Operação Semanal Bruno Lucarell", meta: 200 }
+    { dadosAba: "Bruno Lucarelli", kpiAba: "Operação Semanal Bruno Lucarell", meta: 200 },
+    { dadosAba: "Murilo Arjona", kpiAba: "Operação Semanal Murilo Arjona", meta: 200 },
+    { dadosAba: "Breno Koscky", kpiAba: "Operação Semanal Breno Koscky", meta: 200 }
   ];
 
   var resultado = { clientes: {}, atualizadoEm: new Date().toLocaleString("pt-BR") };
