@@ -7,7 +7,8 @@ function doGet(e) {
     { dadosAba: "Rafa Bueno", kpiAba: "Operação Semanal Rafa Bueno", meta: 250 },
     { dadosAba: "Bruno Lucarelli", kpiAba: "Operação Semanal Bruno Lucarell", meta: 200 },
     { dadosAba: "Murilo Arjona", kpiAba: "Operação Semanal Murilo Arjona", meta: 200 },
-    { dadosAba: "Breno Koscky", kpiAba: "Operação Semanal Breno Koscky", meta: 200 }
+    { dadosAba: "Breno Koscky", kpiAba: "Operação Semanal Breno Koscky", meta: 200 },
+    { dadosAba: "Lucas Arrial", kpiAba: "Operação Semanal Lucas Arrial", meta: 500 }
   ];
 
   var resultado = { clientes: {}, atualizadoEm: new Date().toLocaleString("pt-BR") };
@@ -61,6 +62,29 @@ function extrairTimestamp(val) {
 
 function processarDados(ss, nomeAba) {
   var sheet = ss.getSheetByName(nomeAba);
+  // Fallback: busca aba que contenha o nome (insensitive a espaços/case)
+  if (!sheet) {
+    var normalize = function(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); };
+    var alvoNorm = normalize(nomeAba);
+    var allSheets = ss.getSheets();
+    for (var s = 0; s < allSheets.length; s++) {
+      if (normalize(allSheets[s].getName()) === alvoNorm) {
+        sheet = allSheets[s];
+        break;
+      }
+    }
+    // Fallback 2: busca por substring
+    if (!sheet) {
+      var partes = alvoNorm.split(' ').filter(Boolean);
+      for (var ss2 = 0; ss2 < allSheets.length; ss2++) {
+        var n = normalize(allSheets[ss2].getName());
+        if (partes.every(function(p){ return n.indexOf(p) >= 0; })) {
+          sheet = allSheets[ss2];
+          break;
+        }
+      }
+    }
+  }
   var resultado = {
     porDia: {},
     totais: { enviados: 0, respostas: 0, respostasCS: 0, recontatos: 0, disparoUnicos: 0, comResposta: 0, semResposta: 0, totalLinhas: 0 },
@@ -140,7 +164,8 @@ function processarDados(ss, nomeAba) {
     var partes = statusRaw.split("+");
     for (var p = 0; p < partes.length; p++) {
       var parte = partes[p].trim();
-      if (parte.indexOf("✅") === -1) continue; // Ignora partes com X ou sem check
+      // Aceita ✅ (U+2705), ☑ (U+2611), ✔ (U+2714), ✓ (U+2713)
+      if (parte.indexOf("✅") === -1 && parte.indexOf("☑") === -1 && parte.indexOf("✔") === -1 && parte.indexOf("✓") === -1) continue;
 
       checksNaLinha++;
 
@@ -172,4 +197,35 @@ function processarDados(ss, nomeAba) {
   }
 
   return resultado;
+}
+
+// ============================================================
+// HELPER: rode pra ver os nomes EXATOS das abas e quantas linhas cada uma tem
+// ============================================================
+function listarAbas() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  Logger.log('=== ' + sheets.length + ' abas encontradas ===');
+  for (var i = 0; i < sheets.length; i++) {
+    var s = sheets[i];
+    Logger.log((i+1) + '. "' + s.getName() + '" — ' + s.getLastRow() + ' linhas');
+  }
+}
+
+// ============================================================
+// HELPER: teste só do Lucas Arrial — mostra contagens
+// ============================================================
+function testarLucas() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var r = processarDados(ss, 'Lucas Arrial');
+  Logger.log('Total de linhas processadas: ' + r.totais.totalLinhas);
+  Logger.log('Enviados (disparos ✅): ' + r.totais.enviados);
+  Logger.log('Respostas aluno: ' + r.totais.respostas);
+  Logger.log('Respostas CS: ' + r.totais.respostasCS);
+  Logger.log('Recontatos: ' + r.totais.recontatos);
+  Logger.log('Disparos únicos: ' + r.totais.disparoUnicos);
+  Logger.log('Por dia (ordenado):');
+  Object.keys(r.porDia).sort().forEach(function(d){
+    Logger.log('  ' + d + ': enviados=' + r.porDia[d].enviados + ' respAluno=' + r.porDia[d].respostas + ' respCS=' + r.porDia[d].respostasCS);
+  });
 }

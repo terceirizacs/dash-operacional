@@ -287,10 +287,16 @@ let RAW=null;
 let filtroDE=null,filtroATE=null;
 let selectedClient=null;
 let filtroClientes=null; // null = todos
-const CLIENTES=['Andrea Vermont','Dra Investidora','Rafa Bueno','Bruno Lucarelli','Murilo Arjona','Breno Koscky','Lucas Arrial'];
+const CLIENTES=['Andrea Vermont','Bruno Lucarelli','Murilo Arjona','Breno Koscky','Lucas Arrial'];
+const CLIENTES_CANCELADOS=['Dra Investidora','Rafa Bueno']; // ocultos das views individuais; soma só no Total Geral/All-Time
+const CLIENTES_TODOS=CLIENTES.concat(CLIENTES_CANCELADOS);
 function getClientesFiltrados(){
   if(!filtroClientes||filtroClientes.length===0||filtroClientes.length===CLIENTES.length)return CLIENTES;
   return CLIENTES.filter(c=>filtroClientes.includes(c));
+}
+function getClientesParaTotais(){
+  // Para totais agregados: respeita filtro dos ativos + SEMPRE inclui cancelados (histórico)
+  return getClientesFiltrados().concat(CLIENTES_CANCELADOS);
 }
 
 /* ── Helpers ── */
@@ -442,13 +448,13 @@ function getClientDay(nome,dia){
 
 function getAllClientsRange(de,ate){
   var env=0,resp=0,respCS=0;
-  getClientesFiltrados().forEach(n=>{var r=getClientRange(n,de,ate);env+=r.enviados;resp+=r.respostas;respCS+=r.respostasCS;});
+  getClientesParaTotais().forEach(n=>{var r=getClientRange(n,de,ate);env+=r.enviados;resp+=r.respostas;respCS+=r.respostasCS;});
   return{enviados:env,respostas:resp,respostasCS:respCS};
 }
 
 function getAllClientsTotals(){
   var env=0,resp=0,respCS=0;
-  getClientesFiltrados().forEach(n=>{var c=RAW.clientes[n];if(c&&c.totais){env+=c.totais.enviados||0;resp+=c.totais.respostas||0;respCS+=c.totais.respostasCS||0;}});
+  getClientesParaTotais().forEach(n=>{var c=RAW.clientes[n];if(c&&c.totais){env+=c.totais.enviados||0;resp+=c.totais.respostas||0;respCS+=c.totais.respostasCS||0;}});
   return{enviados:env,respostas:resp,respostasCS:respCS};
 }
 
