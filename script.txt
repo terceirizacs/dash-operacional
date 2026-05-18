@@ -23,6 +23,7 @@ function doGet(e) {
     resultado.clientes[nome] = {
       meta: cfg.meta,
       porDia: dados.porDia,
+      alunosUnicosPorMes: dados.alunosUnicosPorMes,
       totais: dados.totais,
       sla: dados.sla
     };
@@ -88,6 +89,7 @@ function processarDados(ss, nomeAba) {
   }
   var resultado = {
     porDia: {},
+    alunosUnicosPorMes: {},
     totais: { enviados: 0, respostas: 0, respostasCS: 0, recontatos: 0, disparoUnicos: 0, comResposta: 0, semResposta: 0, totalLinhas: 0 },
     sla: { somaMinutosCS: 0, countCS: 0 }
   };
@@ -160,6 +162,7 @@ function processarDados(ss, nomeAba) {
 
     // Contar checks verdes na linha para follow-up/recontato
     var checksNaLinha = 0;
+    var mesesDaLinha = {}; // mapeia "YYYY-MM" => true para contar aluno unico por mes
 
     // Extrair cada check verde com sua data
     var partes = statusRaw.split("+");
@@ -185,6 +188,15 @@ function processarDados(ss, nomeAba) {
 
       resultado.porDia[chave].enviados++;
       resultado.totais.enviados++;
+
+      // Marca o mes da linha para deduplicar aluno x mes
+      mesesDaLinha[ano + "-" + mes] = true;
+    }
+
+    // Cada mes em que a linha (aluno) teve >=1 ✅ conta como 1 aluno unico naquele mes
+    for (var mk in mesesDaLinha) {
+      if (!resultado.alunosUnicosPorMes[mk]) resultado.alunosUnicosPorMes[mk] = 0;
+      resultado.alunosUnicosPorMes[mk]++;
     }
 
     // Classificar recontato vs disparo unico

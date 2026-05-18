@@ -13,7 +13,7 @@
 :root,[data-theme="dark"]{--bg:#0a0e1a;--card:rgba(15,23,42,.65);--border:rgba(255,255,255,.06);--bh:rgba(139,124,247,.2);--shadow:rgba(0,0,0,.3);--t1:#f1f5f9;--t2:#94a3b8;--t3:#475569;--accent:#8b7cf7;--a2:#a78bfa;--teal:#2dd4bf;--green:#34d399;--red:#f87171;--pink:#f472b6;--orange:#fb923c;--gold:#fbbf24;--sky:#38bdf8;--cyan:#22d3ee;--chart-bg:rgba(15,23,42,.4);--track-bg:rgba(255,255,255,.04);--track-fill:rgba(255,255,255,.06);--login-bg:linear-gradient(135deg,#0a0e1a 0%,#1a1040 50%,#0a0e1a 100%)}
 [data-theme="light"]{--bg:#f8fafc;--card:rgba(255,255,255,.85);--border:rgba(0,0,0,.08);--bh:rgba(139,124,247,.25);--shadow:rgba(0,0,0,.08);--t1:#0f172a;--t2:#475569;--t3:#94a3b8;--chart-bg:rgba(241,245,249,.6);--track-bg:rgba(0,0,0,.04);--track-fill:rgba(0,0,0,.06);--login-bg:linear-gradient(135deg,#f8fafc 0%,#ede9fe 50%,#f8fafc 100%)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;transition:all .3s}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;transition:all .3s;overflow-x:hidden}
 #mainWrap{max-width:1440px;margin:0 auto;padding:24px 20px 60px;display:none}
 @media(min-width:768px){#mainWrap{padding:32px 40px 60px}}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
@@ -107,6 +107,24 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 .bg-green{background:var(--green)}
 .bg-yellow{background:var(--gold)}
 .bg-red{background:var(--red)}
+
+/* Tracking — barra dupla com marker de "onde deveria estar" */
+.track-panel{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px;margin-bottom:28px}
+.track-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.track-status-badge{font-size:13px;font-weight:800;padding:6px 14px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px}
+.track-bar-wrap{position:relative;margin:18px 0 12px}
+.track-bar{position:relative;height:36px;background:var(--track-bg);border-radius:10px;overflow:visible}
+.track-bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:10px;transition:width .6s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-size:12px;font-weight:800;color:#fff;min-width:50px}
+.track-marker{position:absolute;top:-8px;bottom:-8px;width:3px;background:#fff;z-index:3;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.6)}
+.track-marker-label{position:absolute;top:-26px;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--t3);white-space:nowrap;background:var(--card);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+.track-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:4px;font-family:'JetBrains Mono'}
+.track-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:18px}
+.track-summary-item{padding:12px;background:var(--track-bg);border-radius:10px}
+.track-summary-label{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.track-summary-value{font-size:18px;font-weight:800;font-family:'JetBrains Mono'}
+.mini-track{position:relative;height:8px;background:var(--track-bg);border-radius:6px;overflow:visible;margin:8px 0}
+.mini-track-fill{position:absolute;left:0;top:0;height:100%;border-radius:6px;transition:width .6s ease}
+.mini-track-marker{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;z-index:2;border-radius:1px}
 
 /* Detail blocks */
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
@@ -218,6 +236,7 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 <button class="tab-btn active" onclick="switchTab('geral',this)">Visao Geral</button>
 <button class="tab-btn" onclick="switchTab('detalhe',this)">Detalhamento</button>
 <button class="tab-btn" onclick="switchTab('performance',this)">Performance</button>
+<button class="tab-btn" onclick="switchTab('metamensal',this)">Meta Mensal</button>
 </nav>
 
 <!-- FILTER BAR -->
@@ -277,6 +296,19 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 <div id="slaSection"></div>
 </div>
 
+<!-- TAB: META MENSAL -->
+<div class="tab-content" id="tab-metamensal">
+<div class="section-title"><span class="emoji">&#128197;</span> Meta Mensal — <span id="mesAtualLabel"></span> <span class="tt">?<span class="tt-text">Acompanhamento do contrato. Considera alunos unicos contatados (cada aluno conta 1 por mes, mesmo com varios disparos).</span></span></div>
+<div class="kpi-grid" id="kpiMetaMensal"></div>
+<div class="section-title"><span class="emoji">&#128640;</span> Tracking — Estou no Caminho? <span class="tt">?<span class="tt-text">Compara o ritmo realizado com o ritmo esperado pelos dias uteis decorridos. Mostra a projecao do fechamento do mes mantendo o ritmo atual.</span></span></div>
+<div id="trackingMensal"></div>
+<div class="section-title"><span class="emoji">&#127942;</span> Progresso por Cliente</div>
+<div class="client-grid" id="metaMensalCards"></div>
+<div class="section-title"><span class="emoji">&#127919;</span> Estrategia — Quantos Disparos para Bater? <span class="tt">?<span class="tt-text">Calcula quantos disparos sao necessarios usando a razao real disparos/aluno do mes corrente (quantos disparos em media sao precisos para fechar 1 aluno unico).</span></span></div>
+<div class="kpi-grid" id="estrategiaKpi"></div>
+<div class="client-grid" id="estrategiaCards"></div>
+</div>
+
 <div class="footer"><strong>Terceiriza CS</strong> · Dashboard Operacional</div>
 </div>
 
@@ -290,6 +322,15 @@ let filtroClientes=null; // null = todos
 const CLIENTES=['Andrea Vermont','Bruno Lucarelli','Murilo Arjona','Breno Koscky','Lucas Arrial','Elisa Fingermann'];
 const CLIENTES_CANCELADOS=['Dra Investidora','Rafa Bueno']; // ocultos das views individuais; soma só no Total Geral/All-Time
 const CLIENTES_TODOS=CLIENTES.concat(CLIENTES_CANCELADOS);
+const METAS_MENSAIS={
+  'Bruno Lucarelli':800,
+  'Andrea Vermont':4000,
+  'Murilo Arjona':800,
+  'Breno Koscky':800,
+  'Lucas Arrial':2000,
+  'Elisa Fingermann':800
+};
+const MESES_PT=['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 function getClientesFiltrados(){
   if(!filtroClientes||filtroClientes.length===0||filtroClientes.length===CLIENTES.length)return CLIENTES;
   return CLIENTES.filter(c=>filtroClientes.includes(c));
@@ -318,6 +359,51 @@ function getWeekRange(){
   var today=new Date();today.setHours(0,0,0,0);
   var mon=getMonday(today);
   return {de:fmtDate(mon),ate:fmtDate(today)};
+}
+
+function getMesAtualRange(){
+  var today=new Date();today.setHours(0,0,0,0);
+  var primeiro=new Date(today.getFullYear(),today.getMonth(),1);
+  var ultimo=new Date(today.getFullYear(),today.getMonth()+1,0);
+  return {de:fmtDate(primeiro),ate:fmtDate(today),fim:fmtDate(ultimo),mes:today.getMonth(),ano:today.getFullYear()};
+}
+
+function diasUteisEntre(de,ate){
+  var d=parseLocalDate(de),end=parseLocalDate(ate),n=0;
+  while(d<=end){var dw=d.getDay();if(dw>=1&&dw<=5)n++;d.setDate(d.getDate()+1);}
+  return n;
+}
+
+function chaveMes(yyyymmdd){return yyyymmdd.slice(0,7);}
+
+function getAlunosUnicosMes(nome,chaveMM){
+  var c=RAW.clientes[nome];
+  if(!c||!c.alunosUnicosPorMes)return null; // null = backend antigo
+  return c.alunosUnicosPorMes[chaveMM]||0;
+}
+
+function getDisparosMes(nome,chaveMM){
+  var c=RAW.clientes[nome];
+  if(!c||!c.porDia)return 0;
+  var total=0;
+  for(var d in c.porDia){
+    if(d.indexOf(chaveMM)===0)total+=c.porDia[d].enviados||0;
+  }
+  return total;
+}
+
+function getRatioDisparosPorAluno(nome,chaveMM){
+  var c=RAW.clientes[nome];
+  if(!c)return 1.5;
+  var disparos=getDisparosMes(nome,chaveMM);
+  var alunos=c.alunosUnicosPorMes?(c.alunosUnicosPorMes[chaveMM]||0):0;
+  if(alunos>0&&disparos>0)return disparos/alunos;
+  // Fallback: media historica de todos os meses
+  if(c.alunosUnicosPorMes){
+    var totA=0;for(var k in c.alunosUnicosPorMes)totA+=c.alunosUnicosPorMes[k];
+    if(totA>0&&c.totais&&c.totais.enviados)return c.totais.enviados/totA;
+  }
+  return 1.5; // default conservador
 }
 
 function getFilterRange(){
@@ -464,6 +550,172 @@ function renderAll(){
   renderGeralTab();
   renderDetalheTab();
   renderPerformanceTab();
+  renderMetaMensalTab();
+}
+
+/* ── TAB: Meta Mensal ── */
+function statusTracking(pctReal,pctTempo){
+  if(pctReal>=100)return{cls:'green',txt:'Meta batida'};
+  var diff=pctReal-pctTempo;
+  if(diff>=-5)return{cls:'green',txt:'No caminho'};
+  if(diff>=-15)return{cls:'yellow',txt:'Atencao'};
+  return{cls:'red',txt:'Em risco'};
+}
+
+function renderMetaMensalTab(){
+  var m=getMesAtualRange();
+  var chaveMM=m.de.slice(0,7);
+  var diasUteisTotal=diasUteisEntre(m.de,m.fim);
+  var diasUteisDecorridos=diasUteisEntre(m.de,m.ate);
+  var diasUteisRestantes=Math.max(0,diasUteisTotal-diasUteisDecorridos);
+  var pctTempo=diasUteisTotal?((diasUteisDecorridos/diasUteisTotal)*100):0;
+
+  var label=MESES_PT[m.mes]+' '+m.ano+' (01 a '+fmtBR(m.ate).slice(0,5)+')';
+  var lblEl=document.getElementById('mesAtualLabel');
+  if(lblEl)lblEl.textContent=label;
+
+  var clientesComMeta=getClientesFiltrados().filter(function(n){return METAS_MENSAIS[n]>0;});
+  var totalRealizado=0,totalMeta=0,backendAntigo=false;
+  var dadosClientes=[];
+  clientesComMeta.forEach(function(nome){
+    var meta=METAS_MENSAIS[nome]||0;
+    var alunos=getAlunosUnicosMes(nome,chaveMM);
+    if(alunos===null){backendAntigo=true;alunos=0;}
+    totalRealizado+=alunos;totalMeta+=meta;
+    dadosClientes.push({nome:nome,meta:meta,alunos:alunos});
+  });
+
+  // === Calculos gerais ===
+  var pctTotal=totalMeta?((totalRealizado/totalMeta)*100):0;
+  var faltamTotal=Math.max(0,totalMeta-totalRealizado);
+  var ritmoAtual=diasUteisDecorridos>0?(totalRealizado/diasUteisDecorridos):0;
+  var ritmoNecessario=diasUteisRestantes>0?(faltamTotal/diasUteisRestantes):faltamTotal;
+  var projecaoFim=Math.round(totalRealizado+(ritmoAtual*diasUteisRestantes));
+  var pctProjecao=totalMeta?((projecaoFim/totalMeta)*100):0;
+  var stGeral=statusTracking(pctTotal,pctTempo);
+
+  // === KPIs (4 antigos + 4 novos) ===
+  var kpiEl=document.getElementById('kpiMetaMensal');
+  if(kpiEl)kpiEl.innerHTML=
+    kpiCard('Meta Total do Mes',fN(totalMeta),'alunos contratados','Soma das metas mensais (alunos unicos) dos clientes filtrados.')+
+    kpiCard('Realizado no Mes',fN(totalRealizado),'alunos unicos','Alunos diferentes contatados do dia 01 ate hoje. Multiplos disparos pro mesmo aluno contam 1.')+
+    kpiCard('% Atingido',pctTotal.toFixed(1)+'%','','Realizado / Meta × 100.')+
+    kpiCard('Faltam para Bater',fN(faltamTotal),'alunos','Alunos restantes para cumprir o contrato no mes.')+
+    kpiCard('Tempo do Mes',diasUteisDecorridos+'/'+diasUteisTotal,'dias uteis ('+pctTempo.toFixed(0)+'%)','Dias uteis (seg-sex) ja passados. Restam '+diasUteisRestantes+' dia(s) util(eis).')+
+    kpiCard('Ritmo Atual',ritmoAtual.toFixed(1),'alunos/dia util','Media de alunos contatados por dia util ja decorrido.')+
+    kpiCard('Ritmo Necessario',ritmoNecessario.toFixed(1),'alunos/dia util','Quantos alunos novos por dia util restante para bater a meta exata.')+
+    kpiCard('Projecao Fechamento',fN(projecaoFim)+' ('+pctProjecao.toFixed(0)+'%)','mantendo ritmo atual','Se mantiver '+ritmoAtual.toFixed(1)+' alunos/dia util, fecha o mes em '+fN(projecaoFim)+' alunos = '+pctProjecao.toFixed(0)+'% da meta.');
+
+  // === Painel de Tracking visual ===
+  var trackEl=document.getElementById('trackingMensal');
+  if(trackEl){
+    var pctRealClamp=Math.min(100,pctTotal);
+    var pctTempoClamp=Math.min(100,pctTempo);
+    var msgTracking;
+    if(pctTotal>=100){
+      msgTracking='Meta do mes ja batida com '+diasUteisRestantes+' dia(s) util(eis) sobrando.';
+    }else if(stGeral.cls==='green'){
+      msgTracking='Voce esta em '+pctTotal.toFixed(1)+'% e o mes ja passou '+pctTempo.toFixed(0)+'%. Ritmo OK — mantenha '+ritmoNecessario.toFixed(1)+' alunos/dia util para bater.';
+    }else if(stGeral.cls==='yellow'){
+      msgTracking='Voce esta em '+pctTotal.toFixed(1)+'% mas o mes ja passou '+pctTempo.toFixed(0)+'%. Atraso leve — para bater precisa acelerar para '+ritmoNecessario.toFixed(1)+' alunos/dia util (hoje voce esta em '+ritmoAtual.toFixed(1)+').';
+    }else{
+      msgTracking='Voce esta em '+pctTotal.toFixed(1)+'% mas o mes ja passou '+pctTempo.toFixed(0)+'%. Atraso significativo — precisa subir o ritmo de '+ritmoAtual.toFixed(1)+' para '+ritmoNecessario.toFixed(1)+' alunos/dia util.';
+    }
+    trackEl.innerHTML='<div class="track-panel">'+
+      '<div class="track-header">'+
+        '<div><div style="font-size:13px;color:var(--t3);margin-bottom:4px">Status geral</div>'+
+        '<div style="font-size:22px;font-weight:800" class="color-'+stGeral.cls+'">'+pctTotal.toFixed(1)+'% da meta</div></div>'+
+        '<div class="track-status-badge bg-'+stGeral.cls+'" style="color:#fff">'+stGeral.txt+'</div>'+
+      '</div>'+
+      '<div class="track-bar-wrap">'+
+        '<div class="track-bar">'+
+          '<div class="track-bar-fill bg-'+stGeral.cls+'" style="width:'+pctRealClamp+'%">'+(pctRealClamp>8?pctTotal.toFixed(0)+'%':'')+'</div>'+
+          '<div class="track-marker" style="left:'+pctTempoClamp+'%"><div class="track-marker-label">deveria estar: '+pctTempo.toFixed(0)+'%</div></div>'+
+        '</div>'+
+        '<div class="track-scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>'+
+      '</div>'+
+      '<div style="font-size:13px;color:var(--t2);margin-top:14px;line-height:1.5">'+msgTracking+'</div>'+
+      '<div class="track-summary">'+
+        '<div class="track-summary-item"><div class="track-summary-label">Realizado</div><div class="track-summary-value">'+fN(totalRealizado)+' / '+fN(totalMeta)+'</div></div>'+
+        '<div class="track-summary-item"><div class="track-summary-label">Ritmo Atual</div><div class="track-summary-value">'+ritmoAtual.toFixed(1)+'<span style="font-size:11px;color:var(--t3);margin-left:4px">alunos/dia util</span></div></div>'+
+        '<div class="track-summary-item"><div class="track-summary-label">Ritmo Necessario</div><div class="track-summary-value color-'+stGeral.cls+'">'+ritmoNecessario.toFixed(1)+'<span style="font-size:11px;color:var(--t3);margin-left:4px">alunos/dia util</span></div></div>'+
+        '<div class="track-summary-item"><div class="track-summary-label">Projecao Fechamento</div><div class="track-summary-value">'+fN(projecaoFim)+'<span style="font-size:11px;color:var(--t3);margin-left:4px">('+pctProjecao.toFixed(0)+'%)</span></div></div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  // === Cards por cliente (com mini-barra dupla) ===
+  var html='';
+  dadosClientes.forEach(function(d){
+    var pctVal=d.meta?((d.alunos/d.meta)*100):0;
+    var faltam=Math.max(0,d.meta-d.alunos);
+    var ritmoClienteNec=diasUteisRestantes>0?(faltam/diasUteisRestantes).toFixed(1):faltam.toFixed(0);
+    var st=statusTracking(pctVal,pctTempo);
+    var pctClamp=Math.min(100,pctVal);
+    var pctTempoClamp=Math.min(100,pctTempo);
+    html+='<div class="client-card"><div class="client-name">'+d.nome+'</div>'+
+      '<div class="client-meta">Meta: '+fN(d.meta)+' alunos/mes</div>'+
+      '<div class="mini-track">'+
+        '<div class="mini-track-fill bg-'+st.cls+'" style="width:'+pctClamp+'%"></div>'+
+        '<div class="mini-track-marker" style="left:'+pctTempoClamp+'%"></div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">'+
+        '<div style="font-size:13px;font-weight:700" class="color-'+st.cls+'">'+pctVal.toFixed(1)+'% da meta</div>'+
+        '<div style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,0.05)" class="color-'+st.cls+'">'+st.txt+'</div>'+
+      '</div>'+
+      '<div class="client-stats" style="grid-template-columns:repeat(3,1fr)">'+
+        '<div class="client-stat"><div class="client-stat-value">'+fN(d.alunos)+'</div><div class="client-stat-label">Alunos unicos</div></div>'+
+        '<div class="client-stat"><div class="client-stat-value">'+fN(faltam)+'</div><div class="client-stat-label">Faltam</div></div>'+
+        '<div class="client-stat"><div class="client-stat-value">'+ritmoClienteNec+'</div><div class="client-stat-label">Por dia util</div></div>'+
+      '</div></div>';
+  });
+  var cardsEl=document.getElementById('metaMensalCards');
+  var aviso=backendAntigo?'<div style="color:var(--gold);padding:12px;margin-bottom:12px;background:rgba(234,179,8,0.08);border-radius:8px;font-size:13px;grid-column:1/-1">⚠ Backend ainda nao atualizado — alunos unicos por mes nao disponivel. Atualize o script GAS e redeploye.</div>':'';
+  if(cardsEl)cardsEl.innerHTML=aviso+(html||'<div style="color:var(--t3);padding:20px">Nenhum cliente com meta mensal cadastrada para o filtro atual.</div>');
+
+  // === Estrategia: disparos necessarios baseado na razao real disparos/aluno ===
+  var totalDisparosFeitos=0,totalDisparosNec=0,totalAlunosFaltam=0,somaRatios=0,countRatios=0;
+  var estrategiaHtml='';
+  dadosClientes.forEach(function(d){
+    var faltam=Math.max(0,d.meta-d.alunos);
+    var ratio=getRatioDisparosPorAluno(d.nome,chaveMM);
+    var disparosFeitos=getDisparosMes(d.nome,chaveMM);
+    var disparosNec=Math.ceil(faltam*ratio);
+    var disparosDia=diasUteisRestantes>0?Math.ceil(disparosNec/diasUteisRestantes):disparosNec;
+    var alunosDia=diasUteisRestantes>0?(faltam/diasUteisRestantes):faltam;
+    var st=statusTracking(d.meta?((d.alunos/d.meta)*100):0,pctTempo);
+    totalDisparosFeitos+=disparosFeitos;
+    totalDisparosNec+=disparosNec;
+    totalAlunosFaltam+=faltam;
+    somaRatios+=ratio;countRatios++;
+    var corDisparos=disparosNec===0?'green':st.cls;
+    var subtitulo=disparosNec===0?'Meta ja batida — manter ritmo':'Para fechar '+fN(faltam)+' aluno(s) faltante(s)';
+    estrategiaHtml+='<div class="client-card"><div class="client-name">'+d.nome+'</div>'+
+      '<div class="client-meta">'+subtitulo+'</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--track-bg);border-radius:10px;margin-bottom:10px">'+
+        '<div><div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Disparos a fazer</div>'+
+        '<div style="font-size:24px;font-weight:800;font-family:JetBrains Mono" class="color-'+corDisparos+'">'+fN(disparosNec)+'</div></div>'+
+        '<div style="text-align:right"><div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Por dia util</div>'+
+        '<div style="font-size:24px;font-weight:800;font-family:JetBrains Mono" class="color-'+corDisparos+'">'+fN(disparosDia)+'</div></div>'+
+      '</div>'+
+      '<div class="client-stats" style="grid-template-columns:repeat(3,1fr)">'+
+        '<div class="client-stat"><div class="client-stat-value">'+ratio.toFixed(2)+'</div><div class="client-stat-label">Disp/Aluno</div></div>'+
+        '<div class="client-stat"><div class="client-stat-value">'+fN(disparosFeitos)+'</div><div class="client-stat-label">Ja Enviados</div></div>'+
+        '<div class="client-stat"><div class="client-stat-value">'+alunosDia.toFixed(1)+'</div><div class="client-stat-label">Alunos/Dia</div></div>'+
+      '</div></div>';
+  });
+  var estEl=document.getElementById('estrategiaCards');
+  if(estEl)estEl.innerHTML=estrategiaHtml||'<div style="color:var(--t3);padding:20px">Sem dados para calcular estrategia.</div>';
+
+  // === KPIs estrategia geral ===
+  var ratioMedio=countRatios>0?(somaRatios/countRatios):1.5;
+  var disparosDiaGeral=diasUteisRestantes>0?Math.ceil(totalDisparosNec/diasUteisRestantes):totalDisparosNec;
+  var estKpiEl=document.getElementById('estrategiaKpi');
+  if(estKpiEl)estKpiEl.innerHTML=
+    kpiCard('Disparos a Fazer',fN(totalDisparosNec),'para bater todas as metas','Total de disparos necessarios para converter os '+fN(totalAlunosFaltam)+' alunos que faltam, usando a razao real disparos/aluno de cada cliente.')+
+    kpiCard('Disparos/Dia Util',fN(disparosDiaGeral),'nos proximos '+diasUteisRestantes+' dia(s)','Quantos disparos por dia util restante para bater a meta de todos os clientes filtrados.')+
+    kpiCard('Razao Media',ratioMedio.toFixed(2),'disparos por aluno','Em media, quantos disparos sao precisos para converter 1 aluno unico (calculado a partir dos dados reais do mes).')+
+    kpiCard('Disparos Ja Feitos',fN(totalDisparosFeitos),'no mes ate hoje','Total de disparos validos (✅) ja enviados de 01 ate hoje para os clientes filtrados.');
 }
 
 /* ── TAB 1: Visao Geral ── */
