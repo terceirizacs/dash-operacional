@@ -742,6 +742,18 @@ function renderGeralTab(){
     kpiCard('Total Respostas (All-Time)',fN(totals.respostas),'')+
     kpiCard('Taxa Historica',taxaHist+'%','');
 
+  // Tracking da semana: dias uteis decorridos vs total (apenas quando filtro = semana atual)
+  var pctTempoSem = null;
+  if(isWeek){
+    var w = getWeekRange();
+    // Total da semana = segunda ate sexta da semana corrente
+    var monDate = parseLocalDate(w.de);
+    var friDate = new Date(monDate); friDate.setDate(friDate.getDate()+4);
+    var diasUteisTotalSem = diasUteisEntre(w.de, fmtDate(friDate));
+    var diasUteisDecorridosSem = diasUteisEntre(w.de, w.ate);
+    pctTempoSem = diasUteisTotalSem ? (diasUteisDecorridosSem/diasUteisTotalSem*100) : 0;
+  }
+
   // Client cards
   var html='';
   getClientesFiltrados().forEach(nome=>{
@@ -750,10 +762,27 @@ function renderGeralTab(){
     var metaPct=c.meta?((r.enviados/c.meta)*100):0;
     var colorClass=metaPct>=80?'green':metaPct>=50?'yellow':'red';
     var taxa2=pct(r.respostas,r.enviados);
+    // Tracking apenas na semana atual
+    var trackHtml, statusBadge='';
+    if(pctTempoSem!==null){
+      var st = statusTracking(metaPct, pctTempoSem);
+      var pctClamp = Math.min(100,metaPct);
+      var pctTempoClamp = Math.min(100,pctTempoSem);
+      trackHtml = '<div class="mini-track" style="height:10px;margin-bottom:8px">'+
+        '<div class="mini-track-fill bg-'+st.cls+'" style="width:'+pctClamp+'%"></div>'+
+        '<div class="mini-track-marker" style="left:'+pctTempoClamp+'%"></div>'+
+      '</div>';
+      statusBadge = '<div style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,0.05)" class="color-'+st.cls+'">'+st.txt+'</div>';
+    } else {
+      trackHtml = '<div class="progress-bar"><div class="progress-fill bg-'+colorClass+'" style="width:'+Math.min(100,metaPct)+'%"></div></div>';
+    }
     html+='<div class="client-card"><div class="client-name">'+nome+'</div>'+
       '<div class="client-meta">Meta: '+fN(c.meta)+' disparos/semana</div>'+
-      '<div class="progress-bar"><div class="progress-fill bg-'+colorClass+'" style="width:'+Math.min(100,metaPct)+'%"></div></div>'+
-      '<div style="font-size:13px;font-weight:700" class="color-'+colorClass+'">'+metaPct.toFixed(1)+'% da meta</div>'+
+      trackHtml+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">'+
+        '<div style="font-size:13px;font-weight:700" class="color-'+colorClass+'">'+metaPct.toFixed(1)+'% da meta</div>'+
+        statusBadge+
+      '</div>'+
       '<div class="client-stats">'+
         '<div class="client-stat"><div class="client-stat-value">'+fN(r.enviados)+'</div><div class="client-stat-label">Enviados</div></div>'+
         '<div class="client-stat"><div class="client-stat-value">'+taxa2+'%</div><div class="client-stat-label">Taxa Resp.</div></div>'+
