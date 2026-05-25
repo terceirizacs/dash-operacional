@@ -292,7 +292,7 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 <div class="tab-content" id="tab-analisediaria">
 <div class="filter-bar" style="margin-bottom:24px">
 <div class="filter-header">
-<span class="filter-title">Filtros — Analise Diaria <span class="tt">?<span class="tt-text">Por padrao mostra o dia de hoje. Voce pode alterar a data, escolher clientes especificos e filtrar funis. Os disparos sao agrupados pelo dia em que foram feitos; a categoria onboarding considera alunos com <=15 dias da data de compra no momento do disparo.</span></span></span>
+<span class="filter-title">Filtros — Analise Diaria <span class="tt">?<span class="tt-text">Por padrao mostra o dia de hoje. Voce pode alterar a data, escolher clientes especificos e filtrar funis. Cada evento (disparo, resposta do aluno, resposta do CS) e classificado pelo funil da linha e pela coorte (onboarding = aluno com <=15 dias de compra no momento do evento; regular = >15d).</span></span></span>
 <div class="filter-actions">
 <button class="filter-clear" onclick="resetAdFilters()">Hoje</button>
 <button class="filter-apply" onclick="applyAdFilters()">Aplicar</button>
@@ -313,10 +313,10 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 <div class="section-title"><span class="emoji">&#128104;&#8205;&#128188;</span> Resposta do CS por Cliente neste Dia <span class="tt">?<span class="tt-text">Quantas mensagens o CS enviou neste dia em cada cliente (independente de qual disparo originou).</span></span></div>
 <div class="client-grid" id="adRespCSPorCliente"></div>
 
-<div class="section-title"><span class="emoji">&#128200;</span> Taxa de Resposta por Funil <span class="tt">?<span class="tt-text">Dos disparos feitos no dia selecionado, mostra a taxa de resposta do aluno separada por funil e por coorte (onboarding = <=15 dias da compra; regular = >15 dias; sem data = sem data de compra preenchida).</span></span></div>
+<div class="section-title"><span class="emoji">&#128200;</span> Taxa de Resposta por Funil <span class="tt">?<span class="tt-text">Eventos do dia selecionado (disparos, respostas do aluno e do CS) separados por funil e por coorte. Onboarding = aluno tinha <=15 dias de compra no momento do evento; Regular = >15 dias; Sem data = sem data de compra preenchida na linha.</span></span></div>
 <div class="table-wrap" id="adTabelaFunil"></div>
 
-<div class="section-title"><span class="emoji">&#127919;</span> Onboarding vs Regular <span class="tt">?<span class="tt-text">Compara a taxa de resposta dos alunos em janela de onboarding (compra <=15 dias antes do disparo) com os demais.</span></span></div>
+<div class="section-title"><span class="emoji">&#127919;</span> Onboarding vs Regular <span class="tt">?<span class="tt-text">Compara os eventos do dia entre alunos em janela de onboarding (compra <=15 dias antes do evento) e os demais. Mostra disparos, respostas e taxa por funil dentro de cada coorte.</span></span></div>
 <div class="detail-grid" id="adComparativoOnb"></div>
 
 <div class="section-title"><span class="emoji">&#128188;</span> Visao Micro por Cliente <span class="tt">?<span class="tt-text">Mesma analise por cliente: disparos do dia, taxa de resposta, recorte onboarding x regular e mix de funis.</span></span></div>
@@ -1269,11 +1269,11 @@ function renderAnaliseDiariaTab(){
   var kpis=document.getElementById('adKpis');
   if(kpis){
     kpis.innerHTML=
-      '<div class="kpi-card"><div class="kpi-label">Disparos no dia</div><div class="kpi-value">'+fN(ag.totDisp)+'</div><div class="kpi-sub">cohort apos filtros</div></div>'+
-      '<div class="kpi-card"><div class="kpi-label">Respostas aluno</div><div class="kpi-value">'+fN(ag.totRA)+'</div><div class="kpi-sub">apos esses disparos</div></div>'+
-      '<div class="kpi-card"><div class="kpi-label">Taxa de resposta</div><div class="kpi-value '+(taxa!=='-'&&+taxa>=40?'color-green':(taxa!=='-'&&+taxa>=20?'color-yellow':'color-red'))+'">'+taxa+(taxa!=='-'?'%':'')+'</div><div class="kpi-sub">aluno / disparo</div></div>'+
-      '<div class="kpi-card"><div class="kpi-label">Resposta do CS no dia</div><div class="kpi-value">'+fN(ativRCS)+'</div><div class="kpi-sub">'+fN(ativRA)+' do aluno · '+fN(ativDisp)+' disparos totais</div></div>'+
-      '<div class="kpi-card"><div class="kpi-label">Onboarding</div><div class="kpi-value">'+fN(onbDisp)+'</div><div class="kpi-sub">'+fN(onbRA)+' resp · '+tOnb+(tOnb!=='-'?'%':'')+' taxa</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Disparos no dia</div><div class="kpi-value">'+fN(ag.totDisp)+'</div><div class="kpi-sub">✅ feitos no dia</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Respostas aluno</div><div class="kpi-value">'+fN(ag.totRA)+'</div><div class="kpi-sub">mensagens do aluno no dia</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Resposta do CS no dia</div><div class="kpi-value">'+fN(ag.totRCS)+'</div><div class="kpi-sub">mensagens do CS no dia</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Taxa de resposta</div><div class="kpi-value '+(taxa!=='-'&&+taxa>=40?'color-green':(taxa!=='-'&&+taxa>=20?'color-yellow':'color-red'))+'">'+taxa+(taxa!=='-'?'%':'')+'</div><div class="kpi-sub">aluno / disparos do dia</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Onboarding (<=15d)</div><div class="kpi-value">'+fN(onbDisp)+'</div><div class="kpi-sub">'+fN(onbRA)+' resp · '+tOnb+(tOnb!=='-'?'%':'')+' taxa</div></div>'+
       '<div class="kpi-card"><div class="kpi-label">Regular (>15d)</div><div class="kpi-value">'+fN(regDisp)+'</div><div class="kpi-sub">'+fN(regRA)+' resp · '+tReg+(tReg!=='-'?'%':'')+' taxa</div></div>';
   }
 
