@@ -190,6 +190,27 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 
 /* Responsive table scroll */
 @media(max-width:640px){.table-wrap{overflow-x:auto}}
+
+/* Analise Diaria — extras */
+.ad-pill{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.ad-pill-onb{background:rgba(45,212,191,.12);color:var(--teal);border:1px solid rgba(45,212,191,.3)}
+.ad-pill-reg{background:rgba(139,124,247,.12);color:var(--accent);border:1px solid rgba(139,124,247,.3)}
+.ad-pill-sem{background:rgba(148,163,184,.12);color:var(--t2);border:1px solid var(--border)}
+.ad-funil-table{font-size:12.5px}
+.ad-funil-table th,.ad-funil-table td{padding:9px 12px;text-align:center}
+.ad-funil-table th.left,.ad-funil-table td.left{text-align:left}
+.ad-funil-table tr.tot td{background:rgba(139,124,247,.08);font-weight:800}
+.ad-cli-block{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px}
+.ad-cli-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap}
+.ad-cli-title{font-size:16px;font-weight:800}
+.ad-cli-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}
+.ad-cli-kpi{background:var(--track-bg);border-radius:10px;padding:10px;text-align:center}
+.ad-cli-kpi-lab{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.ad-cli-kpi-val{font-size:18px;font-weight:800;font-family:'JetBrains Mono'}
+.ad-cli-mix{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ad-cli-mix-item{background:var(--track-bg);padding:6px 10px;border-radius:8px;font-size:11px;color:var(--t2);border:1px solid var(--border)}
+.ad-cli-mix-item strong{color:var(--t1);font-weight:700;margin-left:4px}
+.ad-empty{text-align:center;padding:30px;color:var(--t3);font-size:13px;background:var(--card);border:1px dashed var(--border);border-radius:14px}
 </style>
 </head>
 <body>
@@ -234,6 +255,7 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 <!-- TABS -->
 <nav class="tabs">
 <button class="tab-btn active" onclick="switchTab('geral',this)">Visao Geral</button>
+<button class="tab-btn" onclick="switchTab('analisediaria',this)">Analise Diaria</button>
 <button class="tab-btn" onclick="switchTab('detalhe',this)">Detalhamento</button>
 <button class="tab-btn" onclick="switchTab('performance',this)">Performance</button>
 <button class="tab-btn" onclick="switchTab('metamensal',this)">Meta Mensal</button>
@@ -264,6 +286,41 @@ nav.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;
 <div class="kpi-grid" id="kpiAllTime"></div>
 <div class="section-title"><span class="emoji">&#128188;</span> Clientes</div>
 <div class="client-grid" id="clientCards"></div>
+</div>
+
+<!-- TAB: ANALISE DIARIA -->
+<div class="tab-content" id="tab-analisediaria">
+<div class="filter-bar" style="margin-bottom:24px">
+<div class="filter-header">
+<span class="filter-title">Filtros — Analise Diaria <span class="tt">?<span class="tt-text">Por padrao mostra o dia de hoje. Voce pode alterar a data, escolher clientes especificos e filtrar funis. Os disparos sao agrupados pelo dia em que foram feitos; a categoria onboarding considera alunos com <=15 dias da data de compra no momento do disparo.</span></span></span>
+<div class="filter-actions">
+<button class="filter-clear" onclick="resetAdFilters()">Hoje</button>
+<button class="filter-apply" onclick="applyAdFilters()">Aplicar</button>
+</div>
+</div>
+<div class="filter-grid">
+<div class="filter-group"><label class="filter-label">Data</label><input type="date" class="filter-date" id="adData"></div>
+<div class="filter-group"><label class="filter-label">Cliente</label><div class="ms-wrap" id="adCliente"></div></div>
+<div class="filter-group"><label class="filter-label">Funil</label><div class="ms-wrap" id="adFunil"></div></div>
+<div class="filter-group"><label class="filter-label">Coorte</label><div class="ms-wrap" id="adOnb"></div></div>
+</div>
+<div class="active-filters" id="adTagsArea"></div>
+</div>
+
+<div class="section-title"><span class="emoji">&#128202;</span> KPIs do Dia <span id="adDataLabel" style="font-size:13px;font-weight:500;color:var(--t2);margin-left:6px"></span></div>
+<div class="kpi-grid" id="adKpis"></div>
+
+<div class="section-title"><span class="emoji">&#128104;&#8205;&#128188;</span> Resposta do CS por Cliente neste Dia <span class="tt">?<span class="tt-text">Quantas mensagens o CS enviou neste dia em cada cliente (independente de qual disparo originou).</span></span></div>
+<div class="client-grid" id="adRespCSPorCliente"></div>
+
+<div class="section-title"><span class="emoji">&#128200;</span> Taxa de Resposta por Funil <span class="tt">?<span class="tt-text">Dos disparos feitos no dia selecionado, mostra a taxa de resposta do aluno separada por funil e por coorte (onboarding = <=15 dias da compra; regular = >15 dias; sem data = sem data de compra preenchida).</span></span></div>
+<div class="table-wrap" id="adTabelaFunil"></div>
+
+<div class="section-title"><span class="emoji">&#127919;</span> Onboarding vs Regular <span class="tt">?<span class="tt-text">Compara a taxa de resposta dos alunos em janela de onboarding (compra <=15 dias antes do disparo) com os demais.</span></span></div>
+<div class="detail-grid" id="adComparativoOnb"></div>
+
+<div class="section-title"><span class="emoji">&#128188;</span> Visao Micro por Cliente <span class="tt">?<span class="tt-text">Mesma analise por cliente: disparos do dia, taxa de resposta, recorte onboarding x regular e mix de funis.</span></span></div>
+<div id="adPorClienteSec"></div>
 </div>
 
 <!-- TAB: DETALHAMENTO -->
@@ -441,6 +498,9 @@ function switchTab(id,btn){
   document.getElementById('tab-'+id).classList.add('active');
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
+  // Esconde filter-bar global na aba Analise Diaria (tem o seu proprio filtro)
+  var globalBar=document.querySelector('.filter-bar');
+  if(globalBar){globalBar.style.display=(id==='analisediaria')?'none':'';}
 }
 
 /* ── Filters ── */
@@ -505,6 +565,7 @@ function loadData(){
     RAW=d;
     document.getElementById('badgeTime').textContent='Atualizado: '+d.atualizadoEm;
     initFilters();
+    initAdFilters();
     if(!selectedClient)selectedClient=CLIENTES[0];
     renderAll();
     lo.style.display='none';
@@ -548,6 +609,7 @@ function getAllClientsTotals(){
 function renderAll(){
   if(!RAW)return;
   renderGeralTab();
+  renderAnaliseDiariaTab();
   renderDetalheTab();
   renderPerformanceTab();
   renderMetaMensalTab();
@@ -1011,6 +1073,361 @@ function renderSLA(){
   html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 24px;text-align:center;flex:1"><div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">Referencia</div><div style="font-size:12px;color:var(--t2);margin-top:8px;line-height:1.8"><span style="color:var(--green);font-weight:700">Otimo:</span> ate 6h<br><span style="color:var(--gold);font-weight:700">Bom:</span> 6h a 24h<br><span style="color:var(--red);font-weight:700">Critico:</span> acima de 24h</div></div>';
   html+='</div>';
   document.getElementById('slaSection').innerHTML=html;
+}
+
+/* ============================================================
+   ── TAB: ANALISE DIARIA ──
+   ============================================================ */
+const AD_ONB_LABELS={onb:'Onboarding (<=15d)',reg:'Regular (>15d)',sem:'Sem data de compra'};
+const AD_ONB_KEYS=['onb','reg','sem'];
+let adData=null; // YYYY-MM-DD
+let adClientes=null; // null = todos
+let adFunis=null; // null = todos
+let adOnb=null; // null = todos (subset de AD_ONB_KEYS)
+
+function adGetFunisDisponiveis(){
+  var set={};
+  CLIENTES_TODOS.forEach(function(n){
+    var c=RAW&&RAW.clientes[n];
+    if(!c||!c.analiseDiaria)return;
+    for(var dia in c.analiseDiaria){
+      for(var k in c.analiseDiaria[dia]){
+        var f=k.split('|')[0];
+        set[f]=true;
+      }
+    }
+  });
+  var arr=Object.keys(set).sort();
+  // SEM_FUNIL no final
+  arr=arr.filter(function(x){return x!=='SEM_FUNIL';});
+  if(set['SEM_FUNIL'])arr.push('SEM_FUNIL');
+  return arr;
+}
+
+function initAdFilters(){
+  var hoje=fmtDate(new Date());
+  adData=hoje;
+  var inp=document.getElementById('adData');
+  if(inp)inp.value=hoje;
+  buildMS('adCliente',CLIENTES);
+  buildMS('adFunil',adGetFunisDisponiveis());
+  buildMS('adOnb',AD_ONB_KEYS.map(function(k){return AD_ONB_LABELS[k];}));
+  adClientes=null;adFunis=null;adOnb=null;
+  adUpdateTags();
+}
+
+function adGetClientesFiltrados(){
+  if(!adClientes||adClientes.length===0||adClientes.length===CLIENTES.length)return CLIENTES;
+  return CLIENTES.filter(function(c){return adClientes.indexOf(c)>=0;});
+}
+function adGetClientesParaTotais(){
+  // Inclui cancelados nos totais (como visao geral faz)
+  return adGetClientesFiltrados().concat(CLIENTES_CANCELADOS);
+}
+function adGetFunisFiltrados(){
+  var todos=adGetFunisDisponiveis();
+  if(!adFunis||adFunis.length===0||adFunis.length===todos.length)return todos;
+  return adFunis;
+}
+function adGetOnbFiltrados(){
+  if(!adOnb||adOnb.length===0||adOnb.length===AD_ONB_KEYS.length)return AD_ONB_KEYS.slice();
+  // adOnb tem os labels — converter para keys
+  return AD_ONB_KEYS.filter(function(k){return adOnb.indexOf(AD_ONB_LABELS[k])>=0;});
+}
+
+function applyAdFilters(){
+  var v=document.getElementById('adData').value;
+  adData=v||fmtDate(new Date());
+  var selC=getMS('adCliente');
+  adClientes=selC.length>0&&selC.length<CLIENTES.length?selC:null;
+  var selF=getMS('adFunil');
+  var todosF=adGetFunisDisponiveis();
+  adFunis=selF.length>0&&selF.length<todosF.length?selF:null;
+  var selO=getMS('adOnb');
+  adOnb=selO.length>0&&selO.length<AD_ONB_KEYS.length?selO:null;
+  adUpdateTags();
+  renderAnaliseDiariaTab();
+}
+
+function resetAdFilters(){
+  var hoje=fmtDate(new Date());
+  adData=hoje;
+  document.getElementById('adData').value=hoje;
+  adClientes=null;adFunis=null;adOnb=null;
+  ['adCliente','adFunil','adOnb'].forEach(function(id){
+    var w=document.getElementById(id);
+    if(!w)return;
+    w.querySelectorAll('.ms-option').forEach(function(o){o.classList.remove('selected');});
+    var trig=w.querySelector('.ms-trigger');
+    if(trig)trig.innerHTML='Todos';
+  });
+  adUpdateTags();
+  renderAnaliseDiariaTab();
+}
+
+function adUpdateTags(){
+  var a=document.getElementById('adTagsArea');
+  if(!a)return;
+  var tags='';
+  var hoje=fmtDate(new Date());
+  var isHoje=adData===hoje;
+  tags+='<div class="filter-tag'+(isHoje?' neutral':'')+'">Data: '+fmtBR(adData)+(isHoje?' (hoje)':'')+'</div>';
+  if(adClientes&&adClientes.length>0&&adClientes.length<CLIENTES.length){
+    adClientes.forEach(function(c){tags+='<div class="filter-tag">'+c+'</div>';});
+  }
+  if(adFunis){
+    adFunis.forEach(function(f){tags+='<div class="filter-tag">Funil: '+(f==='SEM_FUNIL'?'(sem funil)':f)+'</div>';});
+  }
+  if(adOnb){
+    adOnb.forEach(function(o){tags+='<div class="filter-tag">'+o+'</div>';});
+  }
+  a.innerHTML=tags;
+}
+
+// Retorna agregado bruto do dia para um cliente: {funil:{onb,reg,sem:[d,rA,rCS]}}
+function adGetDiaCliente(nome,dia){
+  var c=RAW&&RAW.clientes[nome];
+  if(!c||!c.analiseDiaria||!c.analiseDiaria[dia])return null;
+  var out={};
+  var raw=c.analiseDiaria[dia];
+  for(var k in raw){
+    var p=k.split('|');var f=p[0],onb=p[1];
+    if(!out[f])out[f]={onb:[0,0,0],reg:[0,0,0],sem:[0,0,0]};
+    if(out[f][onb]){
+      out[f][onb][0]+=raw[k][0]||0;
+      out[f][onb][1]+=raw[k][1]||0;
+      out[f][onb][2]+=raw[k][2]||0;
+    }
+  }
+  return out;
+}
+
+// Aplica filtros de funil e coorte sobre o agregado bruto
+function adAgregarDia(clientes,dia,funisOK,onbOK){
+  var totDisp=0,totRA=0,totRCS=0;
+  var porFunil={};
+  var porOnb={onb:[0,0,0],reg:[0,0,0],sem:[0,0,0]};
+  clientes.forEach(function(nome){
+    var diaCli=adGetDiaCliente(nome,dia);
+    if(!diaCli)return;
+    for(var f in diaCli){
+      if(funisOK.indexOf(f)<0)continue;
+      if(!porFunil[f])porFunil[f]={onb:[0,0,0],reg:[0,0,0],sem:[0,0,0],tot:[0,0,0]};
+      onbOK.forEach(function(o){
+        var v=diaCli[f][o];
+        if(!v)return;
+        porFunil[f][o][0]+=v[0];porFunil[f][o][1]+=v[1];porFunil[f][o][2]+=v[2];
+        porFunil[f].tot[0]+=v[0];porFunil[f].tot[1]+=v[1];porFunil[f].tot[2]+=v[2];
+        porOnb[o][0]+=v[0];porOnb[o][1]+=v[1];porOnb[o][2]+=v[2];
+        totDisp+=v[0];totRA+=v[1];totRCS+=v[2];
+      });
+    }
+  });
+  return{totDisp:totDisp,totRA:totRA,totRCS:totRCS,porFunil:porFunil,porOnb:porOnb};
+}
+
+// Atividade do dia para um cliente (independente de cohort): porDia[dia]
+function adAtivCliente(nome,dia){
+  var c=RAW&&RAW.clientes[nome];
+  if(!c||!c.porDia||!c.porDia[dia])return{enviados:0,respostas:0,respostasCS:0};
+  var d=c.porDia[dia];
+  return{enviados:d.enviados||0,respostas:d.respostas||0,respostasCS:d.respostasCS||0};
+}
+
+function renderAnaliseDiariaTab(){
+  if(!RAW)return;
+  if(!adData)adData=fmtDate(new Date());
+
+  var lab=document.getElementById('adDataLabel');
+  if(lab){
+    var hoje=fmtDate(new Date());
+    lab.innerHTML='— '+fmtBR(adData)+' ('+dayName(adData)+')'+(adData===hoje?' <span class="ad-pill ad-pill-onb">hoje</span>':'');
+  }
+
+  var clientesTot=adGetClientesParaTotais();
+  var clientesAtivos=adGetClientesFiltrados();
+  var funisOK=adGetFunisFiltrados();
+  var onbOK=adGetOnbFiltrados();
+
+  var ag=adAgregarDia(clientesTot,adData,funisOK,onbOK);
+
+  // ── KPIs do dia
+  var taxa=ag.totDisp>0?((ag.totRA/ag.totDisp)*100).toFixed(1):'-';
+  var taxaCS=ag.totDisp>0?((ag.totRCS/ag.totDisp)*100).toFixed(1):'-';
+  var onbDisp=ag.porOnb.onb[0],onbRA=ag.porOnb.onb[1];
+  var regDisp=ag.porOnb.reg[0],regRA=ag.porOnb.reg[1];
+  var tOnb=onbDisp>0?((onbRA/onbDisp)*100).toFixed(1):'-';
+  var tReg=regDisp>0?((regRA/regDisp)*100).toFixed(1):'-';
+
+  // Atividade pura do dia (resposta CS independente de cohort)
+  var ativDisp=0,ativRA=0,ativRCS=0;
+  clientesTot.forEach(function(n){
+    var a=adAtivCliente(n,adData);
+    ativDisp+=a.enviados;ativRA+=a.respostas;ativRCS+=a.respostasCS;
+  });
+
+  var kpis=document.getElementById('adKpis');
+  if(kpis){
+    kpis.innerHTML=
+      '<div class="kpi-card"><div class="kpi-label">Disparos no dia</div><div class="kpi-value">'+fN(ag.totDisp)+'</div><div class="kpi-sub">cohort apos filtros</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Respostas aluno</div><div class="kpi-value">'+fN(ag.totRA)+'</div><div class="kpi-sub">apos esses disparos</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Taxa de resposta</div><div class="kpi-value '+(taxa!=='-'&&+taxa>=40?'color-green':(taxa!=='-'&&+taxa>=20?'color-yellow':'color-red'))+'">'+taxa+(taxa!=='-'?'%':'')+'</div><div class="kpi-sub">aluno / disparo</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Resposta do CS no dia</div><div class="kpi-value">'+fN(ativRCS)+'</div><div class="kpi-sub">'+fN(ativRA)+' do aluno · '+fN(ativDisp)+' disparos totais</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Onboarding</div><div class="kpi-value">'+fN(onbDisp)+'</div><div class="kpi-sub">'+fN(onbRA)+' resp · '+tOnb+(tOnb!=='-'?'%':'')+' taxa</div></div>'+
+      '<div class="kpi-card"><div class="kpi-label">Regular (>15d)</div><div class="kpi-value">'+fN(regDisp)+'</div><div class="kpi-sub">'+fN(regRA)+' resp · '+tReg+(tReg!=='-'?'%':'')+' taxa</div></div>';
+  }
+
+  // ── Resposta CS por cliente (atividade pura do dia)
+  var respCSDiv=document.getElementById('adRespCSPorCliente');
+  if(respCSDiv){
+    var html='';
+    clientesAtivos.forEach(function(nome){
+      var a=adAtivCliente(nome,adData);
+      var taxaC=a.enviados>0?((a.respostas/a.enviados)*100).toFixed(1):'-';
+      html+='<div class="client-card">'+
+        '<div class="client-name">'+nome+'</div>'+
+        '<div class="client-meta">'+fmtBR(adData)+'</div>'+
+        '<div class="client-stats">'+
+          '<div class="client-stat"><div class="client-stat-value">'+fN(a.respostasCS)+'</div><div class="client-stat-label">CS Respondeu</div></div>'+
+          '<div class="client-stat"><div class="client-stat-value">'+fN(a.respostas)+'</div><div class="client-stat-label">Aluno Respondeu</div></div>'+
+        '</div>'+
+        '<div class="client-stats" style="margin-top:8px">'+
+          '<div class="client-stat"><div class="client-stat-value">'+fN(a.enviados)+'</div><div class="client-stat-label">Disparos</div></div>'+
+          '<div class="client-stat"><div class="client-stat-value">'+taxaC+(taxaC!=='-'?'%':'')+'</div><div class="client-stat-label">Taxa Resp</div></div>'+
+        '</div>'+
+        '</div>';
+    });
+    if(!html)html='<div class="ad-empty">Nenhum cliente nesse filtro.</div>';
+    respCSDiv.innerHTML=html;
+  }
+
+  // ── Tabela funil x coorte
+  var tabDiv=document.getElementById('adTabelaFunil');
+  if(tabDiv){
+    var funis=Object.keys(ag.porFunil).sort();
+    funis=funis.filter(function(x){return x!=='SEM_FUNIL';});
+    if(ag.porFunil['SEM_FUNIL'])funis.push('SEM_FUNIL');
+    if(funis.length===0){
+      tabDiv.innerHTML='<div class="ad-empty">Sem disparos para esse dia com os filtros aplicados.</div>';
+    }else{
+      var t='<table class="ad-funil-table"><thead><tr>'+
+        '<th class="left">Funil</th>';
+      onbOK.forEach(function(o){
+        t+='<th colspan="3">'+AD_ONB_LABELS[o]+'</th>';
+      });
+      t+='<th colspan="3">Total</th></tr><tr><th class="left"></th>';
+      onbOK.forEach(function(){t+='<th>Disp</th><th>Resp</th><th>Taxa</th>';});
+      t+='<th>Disp</th><th>Resp</th><th>Taxa</th></tr></thead><tbody>';
+      funis.forEach(function(f){
+        var row=ag.porFunil[f];
+        t+='<tr><td class="left"><strong>'+(f==='SEM_FUNIL'?'(sem funil)':f)+'</strong></td>';
+        onbOK.forEach(function(o){
+          var v=row[o]||[0,0,0];
+          var tx=v[0]>0?((v[1]/v[0])*100).toFixed(1)+'%':'—';
+          t+='<td>'+fN(v[0])+'</td><td>'+fN(v[1])+'</td><td>'+tx+'</td>';
+        });
+        var tx2=row.tot[0]>0?((row.tot[1]/row.tot[0])*100).toFixed(1)+'%':'—';
+        t+='<td>'+fN(row.tot[0])+'</td><td>'+fN(row.tot[1])+'</td><td><strong>'+tx2+'</strong></td></tr>';
+      });
+      // Linha total
+      var totByOnb={onb:[0,0,0],reg:[0,0,0],sem:[0,0,0]},totT=[0,0,0];
+      funis.forEach(function(f){
+        var row=ag.porFunil[f];
+        AD_ONB_KEYS.forEach(function(o){if(row[o]){totByOnb[o][0]+=row[o][0];totByOnb[o][1]+=row[o][1];totByOnb[o][2]+=row[o][2];}});
+        totT[0]+=row.tot[0];totT[1]+=row.tot[1];totT[2]+=row.tot[2];
+      });
+      t+='<tr class="tot"><td class="left">TOTAL</td>';
+      onbOK.forEach(function(o){
+        var v=totByOnb[o];var tx=v[0]>0?((v[1]/v[0])*100).toFixed(1)+'%':'—';
+        t+='<td>'+fN(v[0])+'</td><td>'+fN(v[1])+'</td><td>'+tx+'</td>';
+      });
+      var txT=totT[0]>0?((totT[1]/totT[0])*100).toFixed(1)+'%':'—';
+      t+='<td>'+fN(totT[0])+'</td><td>'+fN(totT[1])+'</td><td>'+txT+'</td></tr>';
+      t+='</tbody></table>';
+      tabDiv.innerHTML=t;
+    }
+  }
+
+  // ── Comparativo Onboarding vs Regular (dois blocos com mix de funis)
+  var compDiv=document.getElementById('adComparativoOnb');
+  if(compDiv){
+    function blocoCoorte(label,key,cor){
+      var v=ag.porOnb[key];
+      var tx=v[0]>0?((v[1]/v[0])*100).toFixed(1):'-';
+      // funis nessa coorte — TODOS os funis presentes no agregado do dia
+      var funisAll=Object.keys(ag.porFunil);
+      funisAll=funisAll.filter(function(x){return x!=='SEM_FUNIL';}).sort();
+      if(ag.porFunil['SEM_FUNIL'])funisAll.push('SEM_FUNIL');
+
+      var detalhe='<table class="ad-funil-table" style="width:100%;margin-top:6px">'+
+        '<thead><tr><th class="left">Funil</th><th>Disparos</th><th>Respostas</th><th>Taxa</th></tr></thead><tbody>';
+      var anyData=false;
+      funisAll.forEach(function(f){
+        var row=ag.porFunil[f][key]||[0,0,0];
+        if(row[0]===0&&row[1]===0)return;
+        anyData=true;
+        var txF=row[0]>0?((row[1]/row[0])*100).toFixed(1)+'%':'—';
+        var corF=row[0]>0?((row[1]/row[0])*100>=40?'green':((row[1]/row[0])*100>=20?'yellow':'red')):'';
+        detalhe+='<tr><td class="left"><strong>'+(f==='SEM_FUNIL'?'(sem funil)':f)+'</strong></td>'+
+          '<td>'+fN(row[0])+'</td>'+
+          '<td>'+fN(row[1])+'</td>'+
+          '<td'+(corF?' class="color-'+corF+'"':'')+'><strong>'+txF+'</strong></td></tr>';
+      });
+      detalhe+='<tr class="tot"><td class="left">TOTAL</td><td>'+fN(v[0])+'</td><td>'+fN(v[1])+'</td><td>'+(v[0]>0?((v[1]/v[0])*100).toFixed(1)+'%':'—')+'</td></tr>';
+      detalhe+='</tbody></table>';
+      if(!anyData)detalhe='<div class="ad-empty" style="padding:14px">Sem disparos nessa coorte.</div>';
+      return '<div class="detail-block">'+
+        '<div class="detail-block-title">'+label+'</div>'+
+        '<div class="kpi-grid">'+
+          '<div class="kpi-card"><div class="kpi-label">Disparos</div><div class="kpi-value">'+fN(v[0])+'</div></div>'+
+          '<div class="kpi-card"><div class="kpi-label">Respostas</div><div class="kpi-value">'+fN(v[1])+'</div></div>'+
+          '<div class="kpi-card"><div class="kpi-label">Taxa</div><div class="kpi-value color-'+cor+'">'+tx+(tx!=='-'?'%':'')+'</div></div>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px">Taxa por funil</div>'+
+        detalhe+
+        '</div>';
+    }
+    var html='';
+    if(onbOK.indexOf('onb')>=0)html+=blocoCoorte('Onboarding (compra <=15 dias)','onb','green');
+    if(onbOK.indexOf('reg')>=0)html+=blocoCoorte('Regular (compra >15 dias)','reg','yellow');
+    if(onbOK.indexOf('sem')>=0 && ag.porOnb.sem[0]>0)html+=blocoCoorte('Sem data de compra','sem','red');
+    compDiv.innerHTML=html||'<div class="ad-empty">Sem dados.</div>';
+  }
+
+  // ── Por cliente (micro)
+  var microDiv=document.getElementById('adPorClienteSec');
+  if(microDiv){
+    var html='';
+    clientesAtivos.forEach(function(nome){
+      var agCli=adAgregarDia([nome],adData,funisOK,onbOK);
+      var ativ=adAtivCliente(nome,adData);
+      var tx=agCli.totDisp>0?((agCli.totRA/agCli.totDisp)*100).toFixed(1):'-';
+      var tOnbC=agCli.porOnb.onb[0]>0?((agCli.porOnb.onb[1]/agCli.porOnb.onb[0])*100).toFixed(1):'-';
+      var tRegC=agCli.porOnb.reg[0]>0?((agCli.porOnb.reg[1]/agCli.porOnb.reg[0])*100).toFixed(1):'-';
+      var mixHtml='';
+      var fs=Object.keys(agCli.porFunil).sort(function(a,b){return agCli.porFunil[b].tot[0]-agCli.porFunil[a].tot[0];});
+      fs.forEach(function(f){
+        var row=agCli.porFunil[f];
+        if(row.tot[0]===0)return;
+        var txF=row.tot[0]>0?((row.tot[1]/row.tot[0])*100).toFixed(1):'-';
+        mixHtml+='<div class="ad-cli-mix-item">'+(f==='SEM_FUNIL'?'(sem funil)':f)+' <strong>'+fN(row.tot[0])+'</strong> · '+txF+'%</div>';
+      });
+      html+='<div class="ad-cli-block">'+
+        '<div class="ad-cli-head"><div class="ad-cli-title">'+nome+'</div>'+
+        '<div style="font-size:12px;color:var(--t3)">Disparos: <strong style="color:var(--t1)">'+fN(agCli.totDisp)+'</strong> · Taxa: <strong style="color:var(--t1)">'+tx+(tx!=='-'?'%':'')+'</strong></div></div>'+
+        '<div class="ad-cli-kpis">'+
+          '<div class="ad-cli-kpi"><div class="ad-cli-kpi-lab">Disparos</div><div class="ad-cli-kpi-val">'+fN(agCli.totDisp)+'</div></div>'+
+          '<div class="ad-cli-kpi"><div class="ad-cli-kpi-lab">Resp aluno</div><div class="ad-cli-kpi-val">'+fN(agCli.totRA)+'</div></div>'+
+          '<div class="ad-cli-kpi"><div class="ad-cli-kpi-lab">CS resp no dia</div><div class="ad-cli-kpi-val">'+fN(ativ.respostasCS)+'</div></div>'+
+          '<div class="ad-cli-kpi"><div class="ad-cli-kpi-lab"><span class="ad-pill ad-pill-onb">Onb</span> Taxa</div><div class="ad-cli-kpi-val">'+tOnbC+(tOnbC!=='-'?'%':'')+'</div></div>'+
+          '<div class="ad-cli-kpi"><div class="ad-cli-kpi-lab"><span class="ad-pill ad-pill-reg">Reg</span> Taxa</div><div class="ad-cli-kpi-val">'+tRegC+(tRegC!=='-'?'%':'')+'</div></div>'+
+        '</div>'+
+        (mixHtml?'<div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Mix de funis</div><div class="ad-cli-mix">'+mixHtml+'</div>':'')+
+        '</div>';
+    });
+    if(!html)html='<div class="ad-empty">Nenhum cliente nesse filtro.</div>';
+    microDiv.innerHTML=html;
+  }
 }
 </script>
 </body>
