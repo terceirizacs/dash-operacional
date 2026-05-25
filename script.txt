@@ -25,7 +25,8 @@ function doGet(e) {
       porDia: dados.porDia,
       alunosUnicosPorMes: dados.alunosUnicosPorMes,
       totais: dados.totais,
-      sla: dados.sla
+      sla: dados.sla,
+      analiseDiaria: dados.analiseDiaria
     };
   }
 
@@ -35,14 +36,12 @@ function doGet(e) {
 
 function extrairChaveData(val) {
   if (!val || val === '' || val === 'undefined') return null;
-  // Se é Date object (Google Sheets)
   if (val instanceof Date && !isNaN(val.getTime())) {
     var d = val.getDate().toString().padStart(2, '0');
     var m = (val.getMonth() + 1).toString().padStart(2, '0');
     var y = val.getFullYear();
     return y + '-' + m + '-' + d;
   }
-  // Se é string, tentar DD/MM/YYYY
   var s = String(val).trim();
   if (s === '' || s === 'undefined') return null;
   var match = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
@@ -62,9 +61,26 @@ function extrairTimestamp(val) {
   return null;
 }
 
+// Extrai cada ✅ da string de status com sua chave de data e timestamp
+function extrairDisparos(statusRaw) {
+  var out = [];
+  if (!statusRaw) return out;
+  var partes = String(statusRaw).split("+");
+  for (var p = 0; p < partes.length; p++) {
+    var parte = partes[p].trim();
+    if (parte.indexOf("✅") === -1 && parte.indexOf("☑") === -1 && parte.indexOf("✔") === -1 && parte.indexOf("✓") === -1) continue;
+    var m = parte.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+    if (!m) continue;
+    var dia = m[1], mes = m[2], ano = m[3];
+    var hh = m[4] ? +m[4] : 12, mm = m[5] ? +m[5] : 0;
+    var ts = new Date(+ano, +mes-1, +dia, hh, mm).getTime();
+    out.push({ chave: ano + '-' + mes + '-' + dia, ts: ts });
+  }
+  return out;
+}
+
 function processarDados(ss, nomeAba) {
   var sheet = ss.getSheetByName(nomeAba);
-  // Fallback: busca aba que contenha o nome (insensitive a espaços/case)
   if (!sheet) {
     var normalize = function(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); };
     var alvoNorm = normalize(nomeAba);
@@ -75,7 +91,6 @@ function processarDados(ss, nomeAba) {
         break;
       }
     }
-    // Fallback 2: busca por substring
     if (!sheet) {
       var partes = alvoNorm.split(' ').filter(Boolean);
       for (var ss2 = 0; ss2 < allSheets.length; ss2++) {
@@ -91,7 +106,8 @@ function processarDados(ss, nomeAba) {
     porDia: {},
     alunosUnicosPorMes: {},
     totais: { enviados: 0, respostas: 0, respostasCS: 0, recontatos: 0, disparoUnicos: 0, comResposta: 0, semResposta: 0, totalLinhas: 0 },
-    sla: { somaMinutosCS: 0, countCS: 0 }
+    sla: { somaMinutosCS: 0, countCS: 0 },
+    analiseDiaria: {}
   };
 
   if (!sheet) return resultado;
@@ -99,121 +115,121 @@ function processarDados(ss, nomeAba) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return resultado;
 
-  // Colunas: A = Status Disparo, B = Mensagem Agente, C = Mensagem Aluno
-  var range = sheet.getRange(2, 1, lastRow - 1, 3);
+  var lastCol = Math.max(5, sheet.getLastColumn());
+  // A=Status, B=Agente, C=Aluno, D=Data Compra, E=Funil
+  var range = sheet.getRange(2, 1, lastRow - 1, lastCol);
   var values = range.getValues();
+
+  var QUINZE_DIAS_MS = 15 * 24 * 60 * 60 * 1000;
 
   for (var i = 0; i < values.length; i++) {
     var statusRaw = String(values[i][0]).trim();
-    var alunoVal = values[i][2];
     var agenteVal = values[i][1];
+    var alunoVal = values[i][2];
+    var dataCompraVal = values[i].length > 3 ? values[i][3] : null;
+    var funilVal = values[i].length > 4 ? values[i][4] : null;
+
     var alunoStr = String(alunoVal).trim();
     var agenteStr = String(agenteVal).trim();
 
-    // Contar engajamento para TODAS as linhas (mesmo sem status)
     var temAluno = alunoStr !== '' && alunoStr !== 'undefined' && alunoVal !== null;
     var temAgente = agenteStr !== '' && agenteStr !== 'undefined' && agenteVal !== null;
-
-    // Se tem status OU tem resposta do aluno, conta como linha válida
     var temStatus = statusRaw !== '' && statusRaw !== 'undefined';
     if (!temStatus && !temAluno && !temAgente) continue;
 
-    // Contabilizar linha processada
     resultado.totais.totalLinhas++;
 
-    // Engajamento: coluna C tem conteúdo?
     if (temAluno) {
       resultado.totais.comResposta++;
     } else {
       resultado.totais.semResposta++;
     }
 
-    // Resposta aluno: extrair data
+    var tsAluno = temAluno ? extrairTimestamp(alunoVal) : null;
+    var tsAgente = temAgente ? extrairTimestamp(agenteVal) : null;
+
     var chaveAluno = extrairChaveData(alunoVal);
+    var chaveAgente = extrairChaveData(agenteVal);
+
+    // Funil e data compra (uma vez por linha)
+    var funilStr = (funilVal && String(funilVal).trim() !== '' && String(funilVal).trim() !== 'undefined')
+      ? String(funilVal).trim() : 'SEM_FUNIL';
+    var tsCompra = (dataCompraVal instanceof Date && !isNaN(dataCompraVal.getTime())) ? dataCompraVal.getTime() : null;
+
+    function flagOnb(tsEvento){
+      if (tsCompra == null) return 'sem';
+      var diff = tsEvento - tsCompra;
+      return (diff <= QUINZE_DIAS_MS && diff >= -1*24*60*60*1000) ? 'onb' : 'reg';
+    }
+    function chaveBucket(tsEvento){ return funilStr + '|' + flagOnb(tsEvento); }
+    function bumpAD(diaChave, idx, tsEvento){
+      if (!diaChave) return;
+      if (!resultado.analiseDiaria[diaChave]) resultado.analiseDiaria[diaChave] = {};
+      var k = chaveBucket(tsEvento);
+      if (!resultado.analiseDiaria[diaChave][k]) resultado.analiseDiaria[diaChave][k] = [0,0,0];
+      resultado.analiseDiaria[diaChave][k][idx]++;
+    }
+    function tsDoDia(chave){
+      // ts representativo (meio-dia) usado para classificar onb quando nao temos ts exato
+      var p = chave.split('-');
+      return new Date(+p[0], +p[1]-1, +p[2], 12, 0).getTime();
+    }
+
     if (chaveAluno) {
       if (!resultado.porDia[chaveAluno]) resultado.porDia[chaveAluno] = { enviados: 0, respostas: 0, respostasCS: 0 };
       resultado.porDia[chaveAluno].respostas++;
       resultado.totais.respostas++;
+      bumpAD(chaveAluno, 1, tsAluno || tsDoDia(chaveAluno));
     }
 
-    // Resposta agente: extrair data
-    var chaveAgente = extrairChaveData(agenteVal);
     if (chaveAgente) {
       if (!resultado.porDia[chaveAgente]) resultado.porDia[chaveAgente] = { enviados: 0, respostas: 0, respostasCS: 0 };
       resultado.porDia[chaveAgente].respostasCS++;
       resultado.totais.respostasCS++;
+      bumpAD(chaveAgente, 2, tsAgente || tsDoDia(chaveAgente));
     }
 
-    // SLA CS: tempo entre resposta do aluno e resposta do agente
-    if (temAluno && temAgente) {
-      var tsAluno = extrairTimestamp(alunoVal);
-      var tsAgente = extrairTimestamp(agenteVal);
-      if (tsAluno && tsAgente && tsAgente > tsAluno) {
-        var diffMin = Math.round((tsAgente - tsAluno) / 60000);
-        if (diffMin >= 0 && diffMin < 14400) { // max 10 dias
-          resultado.sla.somaMinutosCS += diffMin;
-          resultado.sla.countCS++;
-        }
+    if (temAluno && temAgente && tsAluno && tsAgente && tsAgente > tsAluno) {
+      var diffMin = Math.round((tsAgente - tsAluno) / 60000);
+      if (diffMin >= 0 && diffMin < 14400) {
+        resultado.sla.somaMinutosCS += diffMin;
+        resultado.sla.countCS++;
       }
     }
 
-    // Se não tem status de disparo, pular contagem de ✅
     if (!temStatus) continue;
 
-    // Contar checks verdes na linha para follow-up/recontato
-    var checksNaLinha = 0;
-    var mesesDaLinha = {}; // mapeia "YYYY-MM" => true para contar aluno unico por mes
+    // ===== Extrair todos os disparos da linha =====
+    var disparos = extrairDisparos(statusRaw);
+    var checksNaLinha = disparos.length;
+    var mesesDaLinha = {};
 
-    // Extrair cada check verde com sua data
-    var partes = statusRaw.split("+");
-    for (var p = 0; p < partes.length; p++) {
-      var parte = partes[p].trim();
-      // Aceita ✅ (U+2705), ☑ (U+2611), ✔ (U+2714), ✓ (U+2713)
-      if (parte.indexOf("✅") === -1 && parte.indexOf("☑") === -1 && parte.indexOf("✔") === -1 && parte.indexOf("✓") === -1) continue;
-
-      checksNaLinha++;
-
-      // Extrair data do formato: "✅ DD/MM/YYYY HH:MM"
-      var matchData = parte.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-      if (!matchData) continue;
-
-      var dia = matchData[1];
-      var mes = matchData[2];
-      var ano = matchData[3];
-      var chave = ano + "-" + mes + "-" + dia; // formato YYYY-MM-DD
-
-      if (!resultado.porDia[chave]) {
-        resultado.porDia[chave] = { enviados: 0, respostas: 0, respostasCS: 0 };
-      }
-
-      resultado.porDia[chave].enviados++;
+    // Cada ✅ conta como um disparo (alinhado com porDia.enviados / Visao Geral).
+    // Onboarding e funil sao classificados por evento.
+    for (var d = 0; d < disparos.length; d++) {
+      var dd = disparos[d];
+      if (!resultado.porDia[dd.chave]) resultado.porDia[dd.chave] = { enviados: 0, respostas: 0, respostasCS: 0 };
+      resultado.porDia[dd.chave].enviados++;
       resultado.totais.enviados++;
-
-      // Marca o mes da linha para deduplicar aluno x mes
-      mesesDaLinha[ano + "-" + mes] = true;
+      mesesDaLinha[dd.chave.slice(0,7)] = true;
+      bumpAD(dd.chave, 0, dd.ts);
     }
 
-    // Cada mes em que a linha (aluno) teve >=1 ✅ conta como 1 aluno unico naquele mes
     for (var mk in mesesDaLinha) {
       if (!resultado.alunosUnicosPorMes[mk]) resultado.alunosUnicosPorMes[mk] = 0;
       resultado.alunosUnicosPorMes[mk]++;
     }
 
-    // Classificar recontato vs disparo unico
     if (checksNaLinha >= 2) {
       resultado.totais.recontatos++;
     } else if (checksNaLinha === 1) {
       resultado.totais.disparoUnicos++;
     }
-
-    // (engajamento, respostas aluno e agente ja contabilizados no inicio do loop)
   }
 
   return resultado;
 }
 
-// ============================================================
-// HELPER: rode pra ver os nomes EXATOS das abas e quantas linhas cada uma tem
 // ============================================================
 function listarAbas() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -225,9 +241,6 @@ function listarAbas() {
   }
 }
 
-// ============================================================
-// HELPER: teste só do Lucas Arrial — mostra contagens
-// ============================================================
 function testarLucas() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var r = processarDados(ss, 'Lucas Arrial');
@@ -235,10 +248,7 @@ function testarLucas() {
   Logger.log('Enviados (disparos ✅): ' + r.totais.enviados);
   Logger.log('Respostas aluno: ' + r.totais.respostas);
   Logger.log('Respostas CS: ' + r.totais.respostasCS);
-  Logger.log('Recontatos: ' + r.totais.recontatos);
-  Logger.log('Disparos únicos: ' + r.totais.disparoUnicos);
-  Logger.log('Por dia (ordenado):');
-  Object.keys(r.porDia).sort().forEach(function(d){
-    Logger.log('  ' + d + ': enviados=' + r.porDia[d].enviados + ' respAluno=' + r.porDia[d].respostas + ' respCS=' + r.porDia[d].respostasCS);
-  });
+  var hoje = new Date();
+  var chaveHoje = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
+  Logger.log('Analise diaria HOJE (' + chaveHoje + '): ' + JSON.stringify(r.analiseDiaria[chaveHoje]||{}));
 }
