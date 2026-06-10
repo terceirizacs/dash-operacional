@@ -10,7 +10,8 @@ function doGet(e) {
     { dadosAba: "Breno Koscky", kpiAba: "Operação Semanal Breno Koscky", meta: 200 },
     { dadosAba: "Lucas Arrial", kpiAba: "Operação Semanal Lucas Arrial", meta: 500 },
     { dadosAba: "Elisa Fingermann", kpiAba: "Operação Semanal Elisa Fingerman", meta: 200 },
-    { dadosAba: "Tia do Inglês", kpiAba: "Operação Semanal Tia do Ingles", meta: 200 }
+    { dadosAba: "Tia do Inglês", kpiAba: "Operação Semanal Tia do Ingles", meta: 200 },
+    { dadosAba: "Dra Gess", kpiAba: "Operação Semanal Dra Gess", meta: 100, compraMenos1Ano: true }
   ];
 
   var resultado = { clientes: {}, atualizadoEm: new Date().toLocaleString("pt-BR") };
@@ -19,7 +20,7 @@ function doGet(e) {
     var cfg = clientesConfig[i];
     var nome = cfg.dadosAba;
 
-    var dados = processarDados(ss, cfg.dadosAba);
+    var dados = processarDados(ss, cfg.dadosAba, cfg);
 
     resultado.clientes[nome] = {
       meta: cfg.meta,
@@ -80,7 +81,19 @@ function extrairDisparos(statusRaw) {
   return out;
 }
 
-function processarDados(ss, nomeAba) {
+// Faz o parse de uma celula de data: aceita objeto Date OU texto "dd/mm/yyyy".
+// Retorna timestamp (ms) ou null.
+function parseDataCelula(val) {
+  if (val instanceof Date && !isNaN(val.getTime())) return val.getTime();
+  var s = String(val == null ? '' : val).trim();
+  if (s === '' || s === 'undefined') return null;
+  var m = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]).getTime();
+  return null;
+}
+
+function processarDados(ss, nomeAba, cfg) {
+  cfg = cfg || {};
   var sheet = ss.getSheetByName(nomeAba);
   if (!sheet) {
     var normalize = function(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); };
@@ -155,7 +168,14 @@ function processarDados(ss, nomeAba) {
     // Funil e data compra (uma vez por linha)
     var funilStr = (funilVal && String(funilVal).trim() !== '' && String(funilVal).trim() !== 'undefined')
       ? String(funilVal).trim() : 'SEM_FUNIL';
-    var tsCompra = (dataCompraVal instanceof Date && !isNaN(dataCompraVal.getTime())) ? dataCompraVal.getTime() : null;
+    // Coluna D = Data Compra (Club). Para a Gess, D guarda a "turma / acesso até",
+    // entao a data de compra real = acesso até - 1 ano (ex.: acesso 01/05/2027 => comprou 01/05/2026).
+    var tsCompra = parseDataCelula(dataCompraVal);
+    if (tsCompra != null && cfg.compraMenos1Ano) {
+      var _dc = new Date(tsCompra);
+      _dc.setFullYear(_dc.getFullYear() - 1);
+      tsCompra = _dc.getTime();
+    }
 
     function flagOnb(tsEvento){
       if (tsCompra == null) return 'sem';
