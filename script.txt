@@ -11,7 +11,8 @@ function doGet(e) {
     { dadosAba: "Lucas Arrial", kpiAba: "Operação Semanal Lucas Arrial", meta: 500 },
     { dadosAba: "Elisa Fingermann", kpiAba: "Operação Semanal Elisa Fingerman", meta: 200 },
     { dadosAba: "Tia do Inglês", kpiAba: "Operação Semanal Tia do Ingles", meta: 200 },
-    { dadosAba: "Dra Gess", kpiAba: "Operação Semanal Dra Gess", meta: 100, compraMenos1Ano: true }
+    { dadosAba: "Dr. Gess", kpiAba: "Operação Semanal Dra Gess", meta: 100, compraMenos1Ano: true },
+    { dadosAba: "Tay Training", kpiAba: "Operação Semanal Tay Training", meta: 200 }
   ];
 
   var resultado = { clientes: {}, atualizadoEm: new Date().toLocaleString("pt-BR") };
